@@ -58,17 +58,17 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m) {
 	Type* this_arr = this->array;
 	Type* m_arr = m.array;
 
-	#pragma omp parallel for collapse(2)
-	for (size_t i = 0; i < n; ++i) {
+	#pragma omp parallel for
+	for (int i = 0; i < n; ++i) {
 		//Type* this_row = this_arr + i * n;
 		//Type* res_row = res_arr + i * n;
-		for (size_t k = 0; k < n; ++k) {
+		for (int k = 0; k < n; ++k) {
 			//Type this_val = this_row[k];
 			//Type* m_row = m_arr + k * n;
-			#pragma omp simd
-			for (size_t j = 0; j < n; ++j) {
+			#pragma omp simd safelen(16)
+			for (int j = 0; j < n; ++j) {
 				res_arr[i * n + j] += this_arr[i * n + k] * m_arr[k * n + j];
-				/*res_arr[i * n + j] += this_arr[i * n + k] * m_arr[k * n + j];*/
+				/*res_row[j] += this_val * m_row[j];*/
 			}
 		}
 	}
@@ -77,9 +77,21 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m) {
 
 bool SquareMatrix::operator==(const SquareMatrix& m) {
 	if (size != m.size) return false;
-	for (size_t i = 0; i < size; i++)
-		for (size_t j = 0; j < size; j++)
-			if (array[i * size + j] != m.array[i * size + j]) return false;
+	for (size_t i = 0; i < size; i++) {
+		for (size_t j = 0; j < size; j++) {
+			size_t index = i * size + j;
+
+			Type a = array[index];
+			Type b = m.array[index];
+
+			if (std::fabs(a - b) <= 1e-12) continue;
+
+			Type max_val = std::max(std::fabs(a), std::fabs(b));
+			if (max_val > 1e-12 && std::fabs(a - b) / max_val <= 1e-10) continue;
+
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -105,7 +117,7 @@ void print_LU(const SquareMatrix& m) {
 			cout << " ";
 		}
 		cout << endl;
-	}
+	} cout << endl;
 	cout << "Matrix U:\n";
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++) {
@@ -114,7 +126,7 @@ void print_LU(const SquareMatrix& m) {
 			cout << " ";
 		}
 		cout << endl;
-	}
+	} cout << endl;
 }
 istream& operator>>(istream& istr, SquareMatrix& m) {
 	size_t n = m.size;
@@ -146,7 +158,7 @@ ostream& operator<<(ostream& ostr, SquareMatrix& m) noexcept {
 			Type* A_k_p = A_ik_p + i * size;
 			Type* A_irow = m + i * size;
 			(*A_k_p) /= A_kk;
-			#pragma omp simd
+			#pragma omp simd safelen(16)
 			for (int j = k + 1; j < size; j++)
 				A_irow[j] -= (*A_k_p) * U_ki_p[j];
 		}
