@@ -58,7 +58,7 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m) {
 	Type* this_arr = this->array;
 	Type* m_arr = m.array;
 
-	#pragma omp parallel for collapse(3)
+	#pragma omp parallel for collapse(2)
 	for (size_t i = 0; i < n; ++i) {
 		//Type* this_row = this_arr + i * n;
 		//Type* res_row = res_arr + i * n;
