@@ -1,2 +1,0 @@
-unset(CMAKE_C_COMPILER)
-unset(CMAKE_CXX_COMPILER)
