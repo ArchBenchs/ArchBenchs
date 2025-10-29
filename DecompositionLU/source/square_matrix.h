@@ -14,28 +14,39 @@ public:
 	SquareMatrix(size_t s, Type* in_arr = nullptr);
 	~SquareMatrix();
 
+	// конструктор копирования
 	SquareMatrix(const SquareMatrix& m);
+	// копирующий оператор присваивания
 	SquareMatrix& operator=(const SquareMatrix& m);
 
+	// конструктор перемещения
 	SquareMatrix(SquareMatrix&& m) noexcept;
+	// перемещающий оператор присваивания
 	SquareMatrix& operator=(SquareMatrix&& m) noexcept;
+
+	// индексация с контролем
 
 	Type& at(size_t i, size_t j);
 	const Type& at(size_t i, size_t j) const;
 
 	// пока самая простая реализация для тестов
 	SquareMatrix operator*(const SquareMatrix& m);
+	// сравнение
 	bool operator==(const SquareMatrix& m);
 
 	inline Type& operator()(size_t i, size_t j) { return array[i * size + j]; }
 	inline const Type& operator()(size_t i, size_t j) const { return array[i * size + j]; }
 
 	inline Type*& get_array() { return array; }
-	inline const size_t get_size() const { return size; }
 	inline void set_array(Type*&& arr) { array = arr; }
 
-	// из матрицы, в которой хранятся L и U получает, соответственно, L и U
+	inline const size_t get_size() const { return size; }
+
+	// далее матрица, одновременно хранящая L и U, называется "общая LU матрица"
+
+	// из общей LU матрицы получает, соответственно, L и U
 	void decompose_LU(SquareMatrix& L, SquareMatrix& U);
+	// вывод L и U из общей LU матрицы
 	friend void print_LU(const SquareMatrix& m);
 
 	friend istream& operator>>(istream& istr, SquareMatrix& m);

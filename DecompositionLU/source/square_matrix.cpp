@@ -58,14 +58,14 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m) {
 	Type* this_arr = this->array;
 	Type* m_arr = m.array;
 
-	#pragma omp parallel for
+#pragma omp parallel for
 	for (int i = 0; i < n; ++i) {
 		//Type* this_row = this_arr + i * n;
 		//Type* res_row = res_arr + i * n;
 		for (int k = 0; k < n; ++k) {
 			//Type this_val = this_row[k];
 			//Type* m_row = m_arr + k * n;
-			#pragma omp simd safelen(16)
+#pragma omp simd safelen(16)
 			for (int j = 0; j < n; ++j) {
 				res_arr[i * n + j] += this_arr[i * n + k] * m_arr[k * n + j];
 				/*res_row[j] += this_val * m_row[j];*/
@@ -145,7 +145,7 @@ ostream& operator<<(ostream& ostr, SquareMatrix& m) noexcept {
 	return ostr;
 }
 
- void get_LU(SquareMatrix& matrix_pointer) {
+void get_LU(SquareMatrix& matrix_pointer) {
 	Type*& m = matrix_pointer.get_array();
 	const size_t size = matrix_pointer.get_size();
 	size_t k_iter_max = size - 1;
@@ -153,12 +153,12 @@ ostream& operator<<(ostream& ostr, SquareMatrix& m) noexcept {
 		Type* A_ik_p = m + k;
 		Type* U_ki_p = m + k * size;
 		Type A_kk = m[k * size + k];
-		#pragma omp parallel for schedule(dynamic, 8)
+#pragma omp parallel for //schedule(dynamic, 8)
 		for (int i = k + 1; i < size; i++) {
 			Type* A_k_p = A_ik_p + i * size;
 			Type* A_irow = m + i * size;
 			(*A_k_p) /= A_kk;
-			#pragma omp simd safelen(16)
+#pragma omp simd //safelen(16)
 			for (int j = k + 1; j < size; j++)
 				A_irow[j] -= (*A_k_p) * U_ki_p[j];
 		}
