@@ -43,8 +43,9 @@ void TestSystem::run_all_tests(std::string filename) {
 		print((last_res) ? "true\n\n" : "false\n\n");
 	} p_endl();
 
-	test_time(1000, 10);
-	test_time(3000, 1);
+	//test_time(1000, 1);
+	test_time(3000, 3);
+	//test_time(5000, 1);
 	//test_time(7000, 1);
 	//test_time(10000, 1);
 
