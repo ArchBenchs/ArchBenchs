@@ -1,18 +1,22 @@
 #pragma once
+
 #include <vector>
 #include <string>
 #include <chrono>
+#include <fstream>
+
 using namespace std::chrono;
 
 class SquareMatrix;
 
-// структура, для возврата пере
+// структура для возврата времени из теста на оптимизацию
 struct ReturnedTimes {
 	milliseconds InitTime{0};
 	milliseconds LUTime{0};
 	milliseconds TotalTime{0};
 };
 
+// массив указателей на функции тестов на работоспособность
 using WorkTestPtr = bool (*)();
 
 class TestSystem {
@@ -42,6 +46,14 @@ private:
 
 	static void print_test_start(std::string s = "");
 	static void print_test_end(std::string s = "");
+
+	static std::ofstream file_out;
+	static std::ostream* out;
+
+	template<typename T>
+	static inline void print(const T& value) { *out << value; }
+
+	static inline void p_endl() { *out << std::endl; }
 public:
-	static void run_all_tests();
+	static void run_all_tests(std::string filename = "");
 };

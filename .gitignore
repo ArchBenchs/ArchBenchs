@@ -40,3 +40,4 @@
 # debug information files
 *.dwo
 /DecompositionLU/LU_dec_project_path.txt
+/DecompositionLU/build/

@@ -29,13 +29,15 @@ public:
 	Type& at(size_t i, size_t j);
 	const Type& at(size_t i, size_t j) const;
 
+	// индексация
+
+	inline Type& operator()(size_t i, size_t j) { return array[i * size + j]; }
+	inline const Type& operator()(size_t i, size_t j) const { return array[i * size + j]; }
+
 	// пока самая простая реализация для тестов
 	SquareMatrix operator*(const SquareMatrix& m);
 	// сравнение
 	bool operator==(const SquareMatrix& m);
-
-	inline Type& operator()(size_t i, size_t j) { return array[i * size + j]; }
-	inline const Type& operator()(size_t i, size_t j) const { return array[i * size + j]; }
 
 	inline Type*& get_array() { return array; }
 	inline void set_array(Type*&& arr) { array = arr; }
@@ -47,10 +49,11 @@ public:
 	// из общей LU матрицы получает, соответственно, L и U
 	void decompose_LU(SquareMatrix& L, SquareMatrix& U);
 	// вывод L и U из общей LU матрицы
-	friend void print_LU(const SquareMatrix& m);
+	friend void print_LU(const SquareMatrix& m, ostream& out);
 
 	friend istream& operator>>(istream& istr, SquareMatrix& m);
-	friend ostream& operator<<(ostream& ostr, SquareMatrix& m) noexcept;
+	friend ostream& operator<<(ostream& ostr, const SquareMatrix& m) noexcept;
 };
 
+// целевая тестируемая функция
 void get_LU(SquareMatrix& matrix_pointer);

@@ -107,26 +107,26 @@ void SquareMatrix::decompose_LU(SquareMatrix& L, SquareMatrix& U) {
 			if (j >= i) U.at(i, j) = array[i * n + j];
 }
 
-void print_LU(const SquareMatrix& m) {
+void print_LU(const SquareMatrix& m, ostream& out) {
 	const size_t n = m.size;
-	cout << "Matrix L:\n";
+	out << "Matrix L:\n";
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++) {
-			if (j < i) cout << m.array[i * n + j];
-			else cout << (int)(i == j);
-			cout << " ";
+			if (j < i) out << m.array[i * n + j];
+			else out << (int)(i == j);
+			out << " ";
 		}
-		cout << endl;
-	} cout << endl;
-	cout << "Matrix U:\n";
+		out << endl;
+	} out << endl;
+	out << "Matrix U:\n";
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++) {
-			if (j >= i) cout << m.array[i * n + j];
-			else cout << 0;
-			cout << " ";
+			if (j >= i) out << m.array[i * n + j];
+			else out << 0;
+			out << " ";
 		}
-		cout << endl;
-	} cout << endl;
+		out << endl;
+	} out << endl;
 }
 istream& operator>>(istream& istr, SquareMatrix& m) {
 	size_t n = m.size;
@@ -135,7 +135,7 @@ istream& operator>>(istream& istr, SquareMatrix& m) {
 			istr >> m.array[i * n + j];
 	return istr;
 }
-ostream& operator<<(ostream& ostr, SquareMatrix& m) noexcept {
+ostream& operator<<(ostream& ostr, const SquareMatrix& m) noexcept {
 	size_t n = m.size;
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++)
