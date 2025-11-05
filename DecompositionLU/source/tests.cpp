@@ -47,7 +47,7 @@ void TestSystem::run_all_tests(std::string filename) {
 	test_time(3000, 3);
 	//test_time(5000, 1);
 	//test_time(7000, 1);
-	//test_time(10000, 1);
+	//test_time(10000, 1); посмотреть аргументы командной строки
 
 	if (filename != "") { file_out.close(); }
 }
@@ -114,7 +114,7 @@ ReturnedTimes TestSystem::single_test_time(size_t n) {
 	mt19937 gen(rd());
 	uniform_real_distribution<double> double_generator(-1e6, 1e6);
 
-	SquareMatrix A(n);
+	SquareMatrix A(n); // уже лучше
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++) {
 			A(i, j) = double_generator(gen);
@@ -125,7 +125,7 @@ ReturnedTimes TestSystem::single_test_time(size_t n) {
 	get_LU(A);
 	result_times.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
-	result_times.TotalTime += duration_cast<milliseconds>(NOW - start_init);
+	result_times.TotalTime = duration_cast<milliseconds>(NOW - start_init);
 	return result_times;
 }
 
@@ -141,7 +141,7 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 		time_LU += res.LUTime;
 		total_time += res.TotalTime;
 	}
-	print("\nArithmetic mean of time for init random matrix: ~");
+	print("\nArithmetic mean of time for init random matrix: ~"); // попробовать минимальное время брать
 	print(time_init.count() / how_many_times); 
 	print("ms\nArithmetic mean of time for LU decomposition: ~");
 	print(time_LU.count() / how_many_times);
