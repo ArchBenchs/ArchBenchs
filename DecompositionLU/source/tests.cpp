@@ -44,7 +44,7 @@ void TestSystem::run_all_tests(std::string filename) {
 	} p_endl();
 
 	//test_time(1000, 1);
-	test_time(3000, 3);
+	test_time(4096, 1);
 	//test_time(5000, 1);
 	//test_time(7000, 1);
 	//test_time(10000, 1); посмотреть аргументы командной строки
@@ -71,8 +71,8 @@ bool TestSystem::test1() {
 	const size_t n = 3;
 	Type arr[n * n]{ 
 		2, 3, 1, 
-		4, 7, 7, 
-		6, 18, 22 
+		4, 7, 7,
+		6, 18, 22
 	};
 	SquareMatrix A(n, arr);
 	return test_LU(A, n, "1");

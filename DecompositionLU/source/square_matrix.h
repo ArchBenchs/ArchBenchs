@@ -10,6 +10,11 @@ private:
 	size_t size;
 	Type* array;
 	static constexpr size_t TypeSize = sizeof(Type);
+
+	// для рекурсивной реализации
+	SquareMatrix(const SquareMatrix& A11, const SquareMatrix& A12,
+		const SquareMatrix& A21, const SquareMatrix& A22);
+
 public:
 	SquareMatrix(size_t s, Type* in_arr = nullptr);
 	~SquareMatrix();
@@ -34,10 +39,19 @@ public:
 	inline Type& operator()(size_t i, size_t j) { return array[i * size + j]; }
 	inline const Type& operator()(size_t i, size_t j) const { return array[i * size + j]; }
 
-	// пока самая простая реализация для тестов
-	SquareMatrix operator*(const SquareMatrix& m);
-	// сравнение
+	// арифметика
+
+	SquareMatrix operator+(const SquareMatrix& m);
 	bool operator==(const SquareMatrix& m);
+
+	// блочная реализация (первая версия)
+	SquareMatrix operator*(const SquareMatrix& m);
+	// падает из-за stackoverflow
+	SquareMatrix recursive_mult(const SquareMatrix& m);
+
+	// вернуть матрицу, где csi и rsi - начальные индексы столбцов и рядов исходной матрицы,
+	// откуда будут браться данные, sz - размер выходной матрицы
+	SquareMatrix crop(size_t csi, size_t rsi, size_t sz) const;
 
 	inline Type*& get_array() { return array; }
 	inline void set_array(Type*&& arr) { array = arr; }
