@@ -44,7 +44,7 @@ void TestSystem::run_all_tests(std::string filename) {
 	} p_endl();
 
 	//test_time(1000, 1);
-	test_time(4096, 1);
+	test_time(5000, 1);
 	//test_time(5000, 1);
 	//test_time(7000, 1);
 	//test_time(10000, 1); посмотреть аргументы командной строки

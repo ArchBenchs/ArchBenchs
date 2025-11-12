@@ -75,7 +75,7 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m)
 	for (int i0 = 0; i0 < n; i0 += block_size) {
 		for (int j0 = 0; j0 < n; j0 += block_size) {
 			int i1 = std::min(i0 + block_size, n);
-			int j1 = std::min(j0 + block_size, n);
+			int j1 = std::min(j0 + block_size, n);  // замерить сравнить
 			for (int k0 = 0; k0 < n; k0 += block_size) {
 				int k1 = std::min(k0 + block_size, n);
 				for (int i = i0; i < i1; ++i) {
@@ -130,8 +130,9 @@ SquareMatrix SquareMatrix::recursive_mult(const SquareMatrix& m) {
 			A21.recursive_mult(B11) + A22.recursive_mult(B21),
 			A21.recursive_mult(B12) + A22.recursive_mult(B22)
 		);
-	}
-}
+	} // обратный ход гаусса, по известным ј и L находит U
+} // можно результирующую не создавать, портить начальную
+// 
 SquareMatrix SquareMatrix::crop(size_t csi, size_t rsi, size_t sz) const {
 	Type* arr = new Type[sz * sz];
 	size_t thsz = this->size;
