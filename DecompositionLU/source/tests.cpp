@@ -27,7 +27,7 @@ void TestSystem::print_test_end(std::string s) {
 	print(s); print(": ");
 }
 
-void TestSystem::run_all_tests(std::string filename) {
+void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 	if (filename != "") { 
 		file_out.open(filename);
 		if (!file_out.is_open()) {
@@ -43,27 +43,29 @@ void TestSystem::run_all_tests(std::string filename) {
 		print((last_res) ? "true\n\n" : "false\n\n");
 	} p_endl();
 
-	//test_time(1000, 1);
-	test_time(5000, 1);
-	//test_time(5000, 1);
-	//test_time(7000, 1);
-	//test_time(10000, 1); посмотреть аргументы командной строки
+	test_time(n, count);
+	// посмотреть аргументы командной строки
 
 	if (filename != "") { file_out.close(); }
 }
 
-bool TestSystem::test_LU(SquareMatrix& A, size_t n, std::string test_num) {
-	print_test_start(test_num);
-	SquareMatrix LU(A);
+bool TestSystem::test_LU(SquareMatrix& A, std::string test_num,
+	bool print_a, bool print_lu, bool print_res) {
 
+	const size_t n = A.get_size();
+	SquareMatrix LU(A);
 	get_LU(LU);
 	SquareMatrix L(n), U(n);
 	LU.decompose_LU(L, U);
-	print_LU(LU, *out);
 	SquareMatrix Res = L * U;
-	
-	print("Matrix Res = L * U:\n"); print(Res);
-	print_test_end(test_num);
+
+	if (print_a || print_lu || print_res) {
+		print_test_start(test_num); 
+		if (print_a) { print("Matrix A:\n"); print(A); p_endl(); }
+		if (print_lu) { print_LU(LU, *out); }
+		if (print_res) { print("Matrix Res = L * U:\n"); print(Res); }
+		print_test_end(test_num);
+	}
 	return A == Res;
 }
 
@@ -75,7 +77,7 @@ bool TestSystem::test1() {
 		6, 18, 22
 	};
 	SquareMatrix A(n, arr);
-	return test_LU(A, n, "1");
+	return test_LU(A, "1", 0, 1, 1);
 }
 
 bool TestSystem::test2() {
@@ -87,7 +89,7 @@ bool TestSystem::test2() {
 		1, 1, 1, 1
 	};
 	SquareMatrix A(n, arr);
-	return test_LU(A, n, "2");
+	return test_LU(A, "2", 0, 1, 1);
 }
 
 bool TestSystem::test3() {
@@ -102,8 +104,9 @@ bool TestSystem::test3() {
 		for (size_t j = 0; j < n; j++) {
 			A(i, j) = double_generator(gen);
 		}
-	} print("Matrix A:\n"); print(A); p_endl();
-	return test_LU(A, n, "3");
+	} 
+
+	return test_LU(A, "3", 1, 1, 1);
 }
 
 ReturnedTimes TestSystem::single_test_time(size_t n) {
@@ -114,7 +117,7 @@ ReturnedTimes TestSystem::single_test_time(size_t n) {
 	mt19937 gen(rd());
 	uniform_real_distribution<double> double_generator(-1e6, 1e6);
 
-	SquareMatrix A(n); // уже лучше
+	SquareMatrix A(n);
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++) {
 			A(i, j) = double_generator(gen);
@@ -131,21 +134,23 @@ ReturnedTimes TestSystem::single_test_time(size_t n) {
 
 void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print_test_start("time");
-	chrono::milliseconds time_init{ 0 }, time_LU{ 0 }, total_time{ 0 };
+	chrono::milliseconds time_init{ 1000000000 }, time_LU{ 1000000000 }, total_time{ 1000000000 };
 	const size_t n = _n;
 	print("Testing with n = "); print(_n); print(", "); 
 	print(how_many_times); print(" times:");
 	for (size_t iter = 0; iter < how_many_times; iter++) {
 		ReturnedTimes res = single_test_time(n);
-		time_init += res.InitTime;
-		time_LU += res.LUTime;
-		total_time += res.TotalTime;
+		time_init = (time_init > res.InitTime) ? res.InitTime : time_init;
+		time_LU = (time_LU > res.LUTime) ? res.LUTime : time_LU;
+		total_time = (total_time > res.TotalTime) ? res.TotalTime : total_time;
 	}
-	print("\nArithmetic mean of time for init random matrix: ~"); // попробовать минимальное время брать
-	print(time_init.count() / how_many_times); 
-	print("ms\nArithmetic mean of time for LU decomposition: ~");
-	print(time_LU.count() / how_many_times);
-	print("ms\nArithmetic mean of total time: ~");
-	print(total_time.count() / how_many_times); 
+	print("\nMinimum time for init random matrix: ~");
+	print(time_init.count()); 
+
+	print("ms\nMinimum time for LU decomposition: ~");
+	print(time_LU.count());
+
+	print("ms\nMinimum total time: ~");
+	print(total_time.count()); 
 	print("ms\n-----------------------------------------------------------------------");
 }

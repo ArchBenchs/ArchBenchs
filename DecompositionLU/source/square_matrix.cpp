@@ -39,16 +39,8 @@ SquareMatrix& SquareMatrix::operator=(SquareMatrix&& m) noexcept {
 	return *this;
 }
 
-Type& SquareMatrix::at(size_t i, size_t j) {
-	/*if (i < 0 || i >= size || j < 0 || j >= size)
-		throw out_of_range("Index should be between 0 and matrix size");*/
-	return array[i * size + j];
-}
-const Type& SquareMatrix::at(size_t i, size_t j) const {
-	/*if (i < 0 || i >= size || j < 0 || j >= size)
-		throw out_of_range("Index should be between 0 and matrix size");*/
-	return array[i * size + j];
-}
+Type& SquareMatrix::at(size_t i, size_t j) { return array[i * size + j]; }
+const Type& SquareMatrix::at(size_t i, size_t j) const { return array[i * size + j]; }
 
 SquareMatrix SquareMatrix::operator+(const SquareMatrix& m) {
 	SquareMatrix res(m);
@@ -132,7 +124,7 @@ SquareMatrix SquareMatrix::recursive_mult(const SquareMatrix& m) {
 		);
 	} // обратный ход гаусса, по известным А и L находит U
 } // можно результирующую не создавать, портить начальную
-// 
+ 
 SquareMatrix SquareMatrix::crop(size_t csi, size_t rsi, size_t sz) const {
 	Type* arr = new Type[sz * sz];
 	size_t thsz = this->size;

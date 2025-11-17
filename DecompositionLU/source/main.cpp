@@ -1,12 +1,10 @@
 #include "tests.h"
+using namespace std;
 
-int main()
+int main(int argc, char* argv[])
 {
-	// здесь путь прописан так, потому что build 
-	// находится в директории проекта (build в gitignore)
-
-	// C:/Users/Maxim/source/repos/practice/SECOND_COURSE/FOR_ITLAB/ArchBenchs/DecompositionLU
-
-	TestSystem::run_all_tests("C:/Users/stud-itmm/Desktop/for_del/ArchBenchs/DecompositionLU/docs/last_output.txt");
+	size_t arg1 = (argc == 1) ? 5000 : stoull(argv[1]);
+	size_t arg2 = (argc == 1) ? 1 : stoull(argv[2]);
+	TestSystem::run_all_tests(arg1, arg2, "../../docs/last_output.txt");
 	return 0;
 }

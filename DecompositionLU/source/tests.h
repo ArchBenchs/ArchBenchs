@@ -25,7 +25,8 @@ private:
 	static std::vector<WorkTestPtr> work_tests;
 
 	// сюда пошел обший код для тестов на работоспособность
-	static bool test_LU(SquareMatrix& A, size_t n, std::string test_num);
+	static bool test_LU(SquareMatrix& A, std::string test_num,
+		bool print_a = 0, bool print_lu = 0, bool print_res = 0);
 
 	// тесты на работоспособность
 
@@ -55,5 +56,5 @@ private:
 
 	static inline void p_endl() { *out << std::endl; }
 public:
-	static void run_all_tests(std::string filename = "");
+	static void run_all_tests(size_t n = 5000, size_t count = 1, std::string filename = "");
 };
