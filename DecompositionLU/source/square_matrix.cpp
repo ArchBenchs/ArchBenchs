@@ -151,12 +151,12 @@ void SquareMatrix::decompose_LU(SquareMatrix& L, SquareMatrix& U) {
 	const size_t n = size;
 	for (size_t i = 0; i < n; i++)
 		for (size_t j = 0; j < n; j++) {
-			if (j < i) L.at(i, j) = array[i * n + j];
-			if (j == i) L.at(i, j) = 1;
+			if (j < i) L(i, j) = array[i * n + j];
+			if (j == i) L(i, j) = 1;
 		}
 	for (size_t i = 0; i < n; i++)
 		for (size_t j = 0; j < n; j++)
-			if (j >= i) U.at(i, j) = array[i * n + j];
+			if (j >= i) U(i, j) = array[i * n + j];
 }
 
 void print_LU(const SquareMatrix& m, ostream& out) {
@@ -164,7 +164,7 @@ void print_LU(const SquareMatrix& m, ostream& out) {
 	out << "Matrix L:\n";
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++) {
-			if (j < i) out << m.array[i * n + j];
+			if (j < i) out << m(i, j);
 			else out << (int)(i == j);
 			out << " ";
 		}
@@ -173,7 +173,7 @@ void print_LU(const SquareMatrix& m, ostream& out) {
 	out << "Matrix U:\n";
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++) {
-			if (j >= i) out << m.array[i * n + j];
+			if (j >= i) out << m(i, j);
 			else out << 0;
 			out << " ";
 		}
@@ -184,14 +184,14 @@ istream& operator>>(istream& istr, SquareMatrix& m) {
 	size_t n = m.size;
 	for (size_t i = 0; i < n; i++)
 		for (size_t j = 0; j < n; j++)
-			istr >> m.array[i * n + j];
+			istr >> m(i, j);
 	return istr;
 }
 ostream& operator<<(ostream& ostr, const SquareMatrix& m) noexcept {
 	size_t n = m.size;
 	for (size_t i = 0; i < n; i++) {
 		for (size_t j = 0; j < n; j++)
-			ostr << m.array[i * n + j] << " ";
+			ostr << m(i, j) << " ";
 		ostr << endl;
 	}
 	return ostr;
@@ -214,5 +214,67 @@ void get_LU(SquareMatrix& matrix_pointer) {
 			for (int j = k + 1; j < size; j++)
 				A_irow[j] -= (*A_k_p) * U_ki_p[j];
 		}
+	}
+}
+
+void block_get_LU(Type* m_arr_p, size_t _sz) {
+	const int block_size = 64;
+	int size = (int)_sz;
+	if (size <= block_size) {
+		size_t k_iter_max = size - 1;
+		for (size_t k = 0; k < k_iter_max; k++) {
+			Type* A_ik_p = m_arr_p + k;
+			Type* U_ki_p = m_arr_p + k * size;
+			Type A_kk = m_arr_p[k * size + k];
+#pragma omp parallel for
+			for (int i = k + 1; i < size; i++) {
+				Type* A_k_p = A_ik_p + i * size;
+				Type* A_irow = m_arr_p + i * size;
+				(*A_k_p) /= A_kk;
+#pragma omp simd 
+				for (int j = k + 1; j < size; j++)
+					A_irow[j] -= (*A_k_p) * U_ki_p[j];
+			}
+		}
+		return;
+	}
+	else {
+		size_t k_iter_max = block_size - 1;
+		for (size_t k = 0; k < k_iter_max; k++) {
+			Type* A_ik_p = m_arr_p + k;
+			Type* U_ki_p = m_arr_p + k * block_size;
+			Type A_kk = m_arr_p[k * block_size + k];
+#pragma omp parallel for
+			for (int i = k + 1; i < block_size; i++) {
+				Type* A_k_p = A_ik_p + i * block_size;
+				Type* A_irow = m_arr_p + i * block_size;
+				(*A_k_p) /= A_kk;
+#pragma omp simd 
+				for (int j = k + 1; j < block_size; j++)
+					A_irow[j] -= (*A_k_p) * U_ki_p[j];
+			}
+		}
+#pragma omp parallel for
+		for (int i0 = block_size; i0 < size; i0 += block_size) {
+			int i1 = std::min(i0 + block_size, size);
+			for (int i = i0; i < i1; ++i) {
+				for (int k = 0; k < block_size; ++k) {
+					for (int j = 0; j < k; ++j)
+						m_arr_p[i * size + k] -= m_arr_p[i * size + j] * m_arr_p[j * size + k];
+					m_arr_p[i * size + k] /= m_arr_p[k * size + k];
+				}
+			}
+		} // в теории, эти 2 цикла можно объединить, но это не кэш-френдли
+#pragma omp parallel for
+		for (int i0 = block_size; i0 < size; i0 += block_size) {
+			int i1 = std::min(i0 + block_size, size);
+			for (int i = i0;i < i1; ++i) { // есть ощущение, что неэффективно по памяти ходим, но я пока лучше не придумал
+				for (int k = 0; k < block_size; ++k) {
+					for (int j = 0; j < k; ++j)
+						m_arr_p[k * size + i] -= m_arr_p[j * size + i] + m_arr_p[k * size + j];
+				}
+			}
+		}
+		block_get_LU(m_arr_p + block_size * size + block_size, size - block_size);
 	}
 }
