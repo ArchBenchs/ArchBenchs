@@ -14,6 +14,7 @@ void TestSystem::add_tests() {
 	work_tests.push_back(TestSystem::test1);
 	work_tests.push_back(TestSystem::test2);
 	work_tests.push_back(TestSystem::test3);
+	work_tests.push_back(TestSystem::test4);
 }
 
 void TestSystem::print_test_start(std::string s) {
@@ -44,7 +45,6 @@ void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 	} p_endl();
 
 	test_time(n, count);
-	// посмотреть аргументы командной строки
 
 	if (filename != "") { file_out.close(); }
 }
@@ -54,18 +54,17 @@ bool TestSystem::test_LU(SquareMatrix& A, std::string test_num,
 
 	const size_t n = A.get_size();
 	SquareMatrix LU(A);
-	get_LU(LU);
+	block_get_LU(LU.get_array(), n, n);
 	SquareMatrix L(n), U(n);
 	LU.decompose_LU(L, U);
 	SquareMatrix Res = L * U;
 
-	if (print_a || print_lu || print_res) {
-		print_test_start(test_num); 
-		if (print_a) { print("Matrix A:\n"); print(A); p_endl(); }
-		if (print_lu) { print_LU(LU, *out); }
-		if (print_res) { print("Matrix Res = L * U:\n"); print(Res); }
-		print_test_end(test_num);
-	}
+	print_test_start(test_num);
+	if (print_a) { print("Matrix A:\n"); print(A); p_endl(); }
+	if (print_lu) { print_LU(LU, *out); }
+	if (print_res) { print("Matrix Res = L * U:\n"); print(Res); }
+	print_test_end(test_num);
+
 	return A == Res;
 }
 
@@ -109,6 +108,23 @@ bool TestSystem::test3() {
 	return test_LU(A, "3", 1, 1, 1);
 }
 
+bool TestSystem::test4() {
+	const size_t n = 100;
+
+	random_device rd;
+	mt19937 gen(rd());
+	uniform_real_distribution<double> double_generator(-1e6, 1e6);
+
+	SquareMatrix A(n);
+	for (size_t i = 0; i < n; i++) {
+		for (size_t j = 0; j < n; j++) {
+			A(i, j) = double_generator(gen);
+		}
+	}
+
+	return test_LU(A, "4");
+}
+
 ReturnedTimes TestSystem::single_test_time(size_t n) {
 	ReturnedTimes result_times;
 	TP start_init = NOW;
@@ -125,7 +141,7 @@ ReturnedTimes TestSystem::single_test_time(size_t n) {
 	} result_times.InitTime = duration_cast<milliseconds>(NOW - start_init);
 
 	TP start_LU = NOW;
-	get_LU(A);
+	block_get_LU(A.get_array(), n, n);
 	result_times.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
 	result_times.TotalTime = duration_cast<milliseconds>(NOW - start_init);

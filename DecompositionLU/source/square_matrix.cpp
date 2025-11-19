@@ -47,12 +47,22 @@ SquareMatrix SquareMatrix::operator+(const SquareMatrix& m) {
 #pragma omp parallel for collapse(2)
 	for (size_t i = 0; i < m.size; i++) {
 		for (size_t j = 0; j < m.size; j++) {
-			res.at(i, j) += this->at(i, j);
+			res(i, j) += this->operator()(i, j);
 		}
 	} return res;
 }
 
-SquareMatrix SquareMatrix::operator*(const SquareMatrix& m) 
+SquareMatrix SquareMatrix::operator-(const SquareMatrix& m) {
+	SquareMatrix res(m);
+#pragma omp parallel for collapse(2)
+	for (size_t i = 0; i < m.size; i++) {
+		for (size_t j = 0; j < m.size; j++) {
+			res(i, j) -= this->operator()(i, j);
+		}
+	} return res;
+}
+
+SquareMatrix SquareMatrix::operator*(const SquareMatrix& m)
 {
 	const size_t n = size;
 	const size_t block_size = 64;
@@ -76,7 +86,7 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m)
 					for (int k = k0; k < k1; ++k) {
 						Type this_val = this_row[k];
 						Type* m_row = m_arr + k * n;
-						#pragma omp simd
+#pragma omp simd
 						for (int j = j0; j < j1; ++j) {
 							res_row[j] += this_val * m_row[j];
 						}
@@ -98,14 +108,14 @@ SquareMatrix SquareMatrix::old_multi(const SquareMatrix& m)
 	Type* this_arr = this->array;
 	Type* m_arr = m.array;
 
-	#pragma omp parallel for
+#pragma omp parallel for
 	for (int i = 0; i < n; ++i) {
 		Type* this_row = this_arr + i * n;
 		Type* res_row = res_arr + i * n;
 		for (int k = 0; k < n; ++k) {
 			Type this_val = this_row[k];
 			Type* m_row = m_arr + k * n;
-			#pragma omp simd
+#pragma omp simd
 			for (int j = 0; j < n; ++j) {
 				res_row[j] += this_val * m_row[j];
 			}
@@ -116,7 +126,7 @@ SquareMatrix SquareMatrix::old_multi(const SquareMatrix& m)
 
 // обратный ход гаусса, по известным А и L находит U
 // можно результирующую не создавать, портить начальную
- 
+
 void SquareMatrix::crop(size_t csi, size_t rsi, size_t sz, Type* res_arr) const {
 	size_t thsz = this->size;
 	Type* tharr = this->array + rsi * thsz + csi;
@@ -217,64 +227,79 @@ void get_LU(SquareMatrix& matrix_pointer) {
 	}
 }
 
-void block_get_LU(Type* m_arr_p, size_t _sz) {
+void block_get_LU(Type* m_arr_p, size_t curr_sz, size_t start_sz) {
 	const int block_size = 64;
-	int size = (int)_sz;
-	if (size <= block_size) {
-		size_t k_iter_max = size - 1;
-		for (size_t k = 0; k < k_iter_max; k++) {
-			Type* A_ik_p = m_arr_p + k;
-			Type* U_ki_p = m_arr_p + k * size;
-			Type A_kk = m_arr_p[k * size + k];
+	int curr_size = (int)curr_sz;
+	int start_size = (int)start_sz;
+	bool flag = curr_size <= block_size;
+	int lim = (flag) ? curr_size : block_size;
+	// получение L11 и U11
+	size_t k_iter_max = lim - 1;
+	for (size_t k = 0; k < k_iter_max; k++) {
+		Type* A_ik_p = m_arr_p + k;
+		Type* U_ki_p = m_arr_p + k * start_size;
+		Type A_kk = m_arr_p[k * start_size + k];
 #pragma omp parallel for
-			for (int i = k + 1; i < size; i++) {
-				Type* A_k_p = A_ik_p + i * size;
-				Type* A_irow = m_arr_p + i * size;
-				(*A_k_p) /= A_kk;
+		for (int i = k + 1; i < lim; i++) {
+			Type* A_k_p = A_ik_p + i * start_size;
+			Type* A_irow = m_arr_p + i * start_size;
+			(*A_k_p) /= A_kk;
 #pragma omp simd 
-				for (int j = k + 1; j < size; j++)
-					A_irow[j] -= (*A_k_p) * U_ki_p[j];
-			}
+			for (int j = k + 1; j < lim; j++)
+				A_irow[j] -= (*A_k_p) * U_ki_p[j];
 		}
-		return;
 	}
-	else {
-		size_t k_iter_max = block_size - 1;
-		for (size_t k = 0; k < k_iter_max; k++) {
-			Type* A_ik_p = m_arr_p + k;
-			Type* U_ki_p = m_arr_p + k * block_size;
-			Type A_kk = m_arr_p[k * block_size + k];
-#pragma omp parallel for
-			for (int i = k + 1; i < block_size; i++) {
-				Type* A_k_p = A_ik_p + i * block_size;
-				Type* A_irow = m_arr_p + i * block_size;
-				(*A_k_p) /= A_kk;
-#pragma omp simd 
-				for (int j = k + 1; j < block_size; j++)
-					A_irow[j] -= (*A_k_p) * U_ki_p[j];
+	if (flag) return;
+#pragma omp parallel for // получение L21
+	for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
+		int i1 = std::min(i0 + block_size, curr_size);
+		for (int i = i0; i < i1; ++i) {
+			Type* m_i = m_arr_p + i * start_size;
+			for (int k = 0; k < block_size; ++k) {
+				Type* m_ik = m_i + k;
+				Type* m_xk = m_arr_p + k;
+				Type m_kk = m_arr_p[k * start_size + k];
+				for (int j = 0; j < k; ++j)
+					*m_ik -= m_i[j] * m_xk[j * start_size];
+				*m_ik /= m_kk;
 			}
 		}
-#pragma omp parallel for
-		for (int i0 = block_size; i0 < size; i0 += block_size) {
-			int i1 = std::min(i0 + block_size, size);
-			for (int i = i0; i < i1; ++i) {
-				for (int k = 0; k < block_size; ++k) {
-					for (int j = 0; j < k; ++j)
-						m_arr_p[i * size + k] -= m_arr_p[i * size + j] * m_arr_p[j * size + k];
-					m_arr_p[i * size + k] /= m_arr_p[k * size + k];
+	}
+#pragma omp parallel for // получение U12
+	for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
+		int i1 = std::min(i0 + block_size, curr_size);
+		for (int i = i0;i < i1; ++i) { 
+			Type* m_xi = m_arr_p + i;
+			for (int k = 0; k < block_size; ++k) {
+				Type* m_kx = m_arr_p + k * start_size;
+				Type* m_ki = m_kx + i;
+				for (int j = 0; j < k; ++j)
+					*m_ki -= m_xi[j * start_size] + m_kx[j];
+			}
+		}
+	} // снизу это blast, в теории в отдельную функцию это можно
+#pragma omp parallel for collapse(2) // A22 - L21 * U12 = L22 * U22
+	for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
+		for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
+			int i1 = std::min(i0 + block_size, curr_size);
+			int j1 = std::min(j0 + block_size, curr_size);
+			for (int k0 = block_size; k0 < curr_size; k0 += block_size) {
+				int k1 = std::min(k0 + block_size, curr_size);
+				for (int i = i0; i < i1; ++i) {
+					Type* A22_irow = m_arr_p + i * start_size;
+					Type* L21_irow = m_arr_p + i * start_size;
+					for (int k = k0; k < k1; ++k) {
+						Type L21_ik = L21_irow[k];
+						Type* U12_krow = m_arr_p + k * start_size;
+#pragma omp simd
+						for (int j = j0; j < j1; ++j) {
+							A22_irow[j] -= L21_ik * U12_krow[j];
+						}
+					}
 				}
 			}
-		} // в теории, эти 2 цикла можно объединить, но это не кэш-френдли
-#pragma omp parallel for
-		for (int i0 = block_size; i0 < size; i0 += block_size) {
-			int i1 = std::min(i0 + block_size, size);
-			for (int i = i0;i < i1; ++i) { // есть ощущение, что неэффективно по памяти ходим, но я пока лучше не придумал
-				for (int k = 0; k < block_size; ++k) {
-					for (int j = 0; j < k; ++j)
-						m_arr_p[k * size + i] -= m_arr_p[j * size + i] + m_arr_p[k * size + j];
-				}
-			}
 		}
-		block_get_LU(m_arr_p + block_size * size + block_size, size - block_size);
 	}
+	block_get_LU(m_arr_p + block_size * start_size + block_size,
+		start_sz - (size_t)block_size, start_sz);
 }

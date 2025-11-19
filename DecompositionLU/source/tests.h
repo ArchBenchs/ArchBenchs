@@ -32,7 +32,8 @@ private:
 
 	static bool test1(); 
 	static bool test2(); 
-	static bool test3(); 
+	static bool test3();
+	static bool test4();
 
 	// тест на оптимизацию и время выполнения, n - размер кв. матрицы, 
 	// how_many_times - сколько раз прогнать
