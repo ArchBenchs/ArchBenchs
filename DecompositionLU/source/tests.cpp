@@ -60,6 +60,7 @@ bool TestSystem::test_LU(SquareMatrix& A, std::string test_num,
 	SquareMatrix Res = L * U;
 
 	print_test_start(test_num);
+	/*if (test_num != "4") { print(LU); p_endl(); }*/
 	if (print_a) { print("Matrix A:\n"); print(A); p_endl(); }
 	if (print_lu) { print_LU(LU, *out); }
 	if (print_res) { print("Matrix Res = L * U:\n"); print(Res); }
