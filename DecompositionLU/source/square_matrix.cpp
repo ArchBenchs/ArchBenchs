@@ -275,13 +275,14 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 		for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
 			int j1 = std::min(j0 + block_size, curr_size);
 			for (int j = j0; j < j1; ++j) {
+				Type* m_xj = m_arr_p + j;
 				for (int k = 0; k < block_size; ++k) {
-					Type* m_k = m_arr_p + k * start_size;
-					Type* m_kj = m_k + j;
+					Type* m_kx = m_arr_p + k * start_size;
+					Type* m_kj = m_kx + j;
 
 					for (int i = 0; i < k; ++i) {
-						Type* m_ki = m_arr_p + k * start_size + i;
-						Type* m_ij = m_arr_p + i * start_size + j;
+						Type* m_ki = m_kx + i;
+						Type* m_ij = m_xj + i * start_size;
 						*m_kj -= (*m_ki) * (*m_ij);
 					}
 				}
