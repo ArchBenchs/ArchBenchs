@@ -146,7 +146,7 @@ bool SquareMatrix::operator==(const SquareMatrix& m) {
 			if (std::fabs(a - b) <= 1e-12) continue;
 
 			Type max_val = std::max(std::fabs(a), std::fabs(b));
-			if (max_val > 1e-12 && std::fabs(a - b) / max_val <= 1e-6) continue;
+			if (max_val > 1e-12 && std::fabs(a - b) / max_val <= 1e-8) continue;
 
 			return false;
 		}

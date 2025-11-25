@@ -45,6 +45,7 @@ void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 	} p_endl();
 
 	test_time(n, count);
+	test_time(5000, 2);
 
 	if (filename != "") { file_out.close(); }
 }
@@ -161,13 +162,13 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 		time_LU = (time_LU > res.LUTime) ? res.LUTime : time_LU;
 		total_time = (total_time > res.TotalTime) ? res.TotalTime : total_time;
 	}
-	print("\nMinimum time for init random matrix: ~");
+	print("\nMinimum time for init random matrix: ");
 	print(time_init.count()); 
 
-	print("ms\nMinimum time for LU decomposition: ~");
+	print(" ms\nMinimum time for LU decomposition: ");
 	print(time_LU.count());
 
-	print("ms\nMinimum total time: ~");
+	print(" ms\nMinimum total time: ");
 	print(total_time.count()); 
-	print("ms\n-----------------------------------------------------------------------");
+	print(" ms\n-----------------------------------------------------------------------");
 }
