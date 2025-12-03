@@ -45,7 +45,6 @@ void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 	} p_endl();
 
 	test_time(n, count);
-	test_time(5000, 2);
 
 	if (filename != "") { file_out.close(); }
 }
