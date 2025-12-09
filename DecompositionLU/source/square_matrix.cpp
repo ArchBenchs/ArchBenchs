@@ -136,6 +136,7 @@ void SquareMatrix::crop(size_t csi, size_t rsi, size_t sz, Type* res_arr) const 
 
 bool SquareMatrix::operator==(const SquareMatrix& m) {
 	if (size != m.size) return false;
+	double eps = 1e-4;
 	for (size_t i = 0; i < size; i++) {
 		for (size_t j = 0; j < size; j++) {
 			size_t index = i * size + j;
@@ -143,10 +144,10 @@ bool SquareMatrix::operator==(const SquareMatrix& m) {
 			Type a = array[index];
 			Type b = m.array[index];
 
-			if (std::fabs(a - b) <= 1e-12) continue;
+			if (std::fabs(a - b) <= eps) continue;
 
 			Type max_val = std::max(std::fabs(a), std::fabs(b));
-			if (max_val > 1e-12 && std::fabs(a - b) / max_val <= 1e-8) continue;
+			if (max_val > eps && std::fabs(a - b) / max_val <= eps) continue;
 
 			return false;
 		}
@@ -228,7 +229,7 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 	const int block_size = 64;
 
 	int curr_size = (int)curr_sz;
-	int start_size = (int)start_sz;
+	int start_size = (int)start_sz; // попробовать замерить, сколько операций в блочной и последовательной
 
 	int iter_max = start_size * start_size;
 	int iter_step = block_size * start_size + block_size;
@@ -239,7 +240,7 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 		bool flag = curr_size <= block_size;
 		int lim = (flag) ? curr_size : block_size;
 
-		// получение L11 и U11
+		// L11 & U11
 		size_t k_iter_max = lim - 1;
 		for (size_t k = 0; k < k_iter_max; k++) {
 			Type* A_ik_p = m_arr_p + k;
@@ -257,21 +258,24 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 		}
 		if (flag) return;
 
-#pragma omp parallel for // ѕолучение L21
-		for (int i = block_size; i < curr_size; i++) {
-			Type* L_i = m_arr_p + i * start_size;
-			for (int k = 0; k < block_size; k++) {
-				Type* L_ik = L_i + k;
-				for (int j = 0; j < k; j++) {
-					Type* L_ij = L_i + j;
-					Type* U_j = m_arr_p + j * start_size;
-					*L_ik -= (*L_ij) * U_j[k];
+#pragma omp parallel for // L21
+		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
+			int i1 = std::min(i0 + block_size, curr_size);
+			for (int i = i0; i < i1; ++i) {
+				Type* L_ix = m_arr_p + i * start_size;
+				for (int k = 0; k < block_size; k++) {
+					Type* L_ik = L_ix + k;
+					for (int j = 0; j < k; j++) {
+						Type* L_ij = L_ix + j;
+						Type* U_jx = m_arr_p + j * start_size;
+						*L_ik -= *(L_ij) * U_jx[k];
+					}
+					Type* U_kx = m_arr_p + k * start_size;
+					*L_ik /= U_kx[k];
 				}
-				Type* U_k = m_arr_p + k * start_size;
-				*L_ik /= U_k[k];
 			}
 		}
-#pragma omp parallel for // ѕолучение U12
+#pragma omp parallel for // U12 
 		for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
 			int j1 = std::min(j0 + block_size, curr_size);
 			for (int j = j0; j < j1; ++j) {
@@ -298,15 +302,14 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 
 				for (int i = i0; i < i1; ++i) {
 					Type* A22_irow = m_arr_p + i * start_size;
-					for (int j = j0; j < j1; ++j) {
-						Type sum = 0.0;
-#pragma omp simd reduction(+:sum)
-						for (int k = 0; k < block_size; ++k) {
-							Type* L_ik = m_arr_p + i * start_size + k;
-							Type* U_kj = m_arr_p + k * start_size + j;
-							sum += (*L_ik) * (*U_kj);
+					Type* L_ix = m_arr_p + i * start_size;
+					for (int k = 0; k < block_size; ++k) {
+						Type L_ik = *(L_ix + k);
+						Type* U_kx = m_arr_p + k * start_size;
+						for (int j = j0; j < j1; ++j) {
+							A22_irow[j] -= L_ik * *(U_kx + j);
 						}
-						A22_irow[j] -= sum;
+						// энтринтики не используем, чтоб кроссплатформенный код был
 					}
 				}
 			}

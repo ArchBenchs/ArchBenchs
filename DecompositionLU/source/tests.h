@@ -1,5 +1,7 @@
 #pragma once
 
+#include "square_matrix.h"
+
 #include <vector>
 #include <string>
 #include <chrono>
@@ -7,13 +9,12 @@
 
 using namespace std::chrono;
 
-class SquareMatrix;
-
 // структура дл€ возврата времени из теста на оптимизацию
-struct ReturnedTimes {
+struct ReturnedResults {
 	milliseconds InitTime{0};
 	milliseconds LUTime{0};
 	milliseconds TotalTime{0};
+	bool is_correct;
 };
 
 // массив указателей на функции тестов на работоспособность
@@ -39,7 +40,7 @@ private:
 	// how_many_times - сколько раз прогнать
 	static void test_time(size_t _n, size_t how_many_times = 1);
 	// внутренн€€ функци€ test_time
-	static ReturnedTimes single_test_time(size_t n);
+	static ReturnedResults single_test_time(size_t n);
 
 	// функци€ добавлени€ всех тестов работоспособности в work_tests
 	static void add_tests();

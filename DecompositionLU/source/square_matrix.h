@@ -56,7 +56,7 @@ public:
 	inline const size_t get_size() const { return size; }
 
 	// далее матрица, одновременно хранящая L и U, называется "общая LU матрица"
-
+	
 	// из общей LU матрицы получает, соответственно, L и U
 	void decompose_LU(SquareMatrix& L, SquareMatrix& U);
 	// вывод L и U из общей LU матрицы
