@@ -67,6 +67,6 @@ public:
 };
 
 // целевая тестируемая функция, первая версия (не блочная, не рекурсивная)
-int get_LU(SquareMatrix& matrix_pointer);
+void get_LU(SquareMatrix& matrix_pointer);
 // целевая тестируемая функция, вторая версия (блочная, не рекурсивная), на вход поступает не матрица, а ее массив
 void block_get_LU(Type* m_arr_p, size_t curr_sz, size_t start_sz);

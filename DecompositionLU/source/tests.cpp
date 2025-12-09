@@ -43,10 +43,7 @@ void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 		last_res = (*TestPtr)();
 		print((last_res) ? "true\n\n" : "false\n\n");
 	} p_endl();
-
-	/*test_time(1000, 10);
-	test_time(3000, 6);
-	test_time(7000, 4);*/
+	test_time(3000, 1);
 	test_time(n, count);
 
 	if (filename != "") { file_out.close(); }
@@ -146,8 +143,7 @@ ReturnedResults TestSystem::single_test_time(size_t n) {
 	} results.InitTime = duration_cast<milliseconds>(NOW - start_init);
 
 	TP start_LU = NOW;
-	print(get_LU(LU));
-	//block_get_LU(LU.get_array(), n, n);
+	block_get_LU(LU.get_array(), n, n);
 	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
 	results.TotalTime = duration_cast<milliseconds>(NOW - start_init);
@@ -180,7 +176,7 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print(" ms\nMinimum total time: ");
 	print(total_time.count()); 
 
-	print(" ms\n\nTotal test result: "); print(cc / (cc + incc));
+	print(" ms\n\nTotal test result: "); print(cc / (cc + incc) * 100);
 	print("%\nCorrect count: "); print(cc);
 	print("\nIncorrect count: "); print(incc);
 	print("\n-----------------------------------------------------------------------");

@@ -205,34 +205,29 @@ ostream& operator<<(ostream& ostr, const SquareMatrix& m) noexcept {
 	return ostr;
 }
 
-int get_LU(SquareMatrix& matrix_pointer) {
+void get_LU(SquareMatrix& matrix_pointer) {
 	Type*& m = matrix_pointer.get_array();
 	const size_t size = matrix_pointer.get_size();
 	size_t k_iter_max = size - 1;
-	int count = 1;
 	for (size_t k = 0; k < k_iter_max; k++) {
 		Type* A_ik_p = m + k;
 		Type* U_ki_p = m + k * size;
 		Type A_kk = m[k * size + k];
-//#pragma omp parallel for
+#pragma omp parallel for
 		for (int i = k + 1; i < size; i++) {
 			Type* A_k_p = A_ik_p + i * size;
 			Type* A_irow = m + i * size;
 			(*A_k_p) /= A_kk;
-//#pragma omp simd 
+#pragma omp simd 
 			for (int j = k + 1; j < size; j++) {
 				A_irow[j] -= (*A_k_p) * U_ki_p[j];
-				count += 6;
 			}
-			count += 7;
 		}
-		count += 7;
 	}
-	return count;
 }
 
 void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
-	const int block_size = 64;
+	const int block_size = 32;
 
 	int curr_size = (int)curr_sz;
 	int start_size = (int)start_sz; 
