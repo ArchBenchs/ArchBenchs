@@ -146,7 +146,8 @@ ReturnedResults TestSystem::single_test_time(size_t n) {
 	} results.InitTime = duration_cast<milliseconds>(NOW - start_init);
 
 	TP start_LU = NOW;
-	print(block_get_LU(LU.get_array(), n, n));
+	print(get_LU(LU));
+	//block_get_LU(LU.get_array(), n, n);
 	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
 	results.TotalTime = duration_cast<milliseconds>(NOW - start_init);
