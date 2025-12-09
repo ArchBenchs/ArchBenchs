@@ -146,7 +146,7 @@ ReturnedResults TestSystem::single_test_time(size_t n) {
 	} results.InitTime = duration_cast<milliseconds>(NOW - start_init);
 
 	TP start_LU = NOW;
-	block_get_LU(LU.get_array(), n, n);
+	print(block_get_LU(LU.get_array(), n, n));
 	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
 	results.TotalTime = duration_cast<milliseconds>(NOW - start_init);
@@ -160,7 +160,7 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print_test_start("time");
 	chrono::milliseconds time_init{ 1000000000 }, time_LU{ 1000000000 }, total_time{ 1000000000 };
 	const size_t n = _n;
-	int cc = 0, incc = 0; bool all_correct = true;
+	int cc = 0, incc = 0;
 	print("Testing with n = "); print(_n); print(", "); 
 	print(how_many_times); print(" times:");
 	for (size_t iter = 0; iter < how_many_times; iter++) {
@@ -168,7 +168,6 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 		time_init = (time_init > res.InitTime) ? res.InitTime : time_init;
 		time_LU = (time_LU > res.LUTime) ? res.LUTime : time_LU;
 		total_time = (total_time > res.TotalTime) ? res.TotalTime : total_time;
-		all_correct &= res.is_correct;
 		if (res.is_correct) { ++cc; } else { ++incc; }
 	}
 	print("\nMinimum time for init random matrix: ");
@@ -180,8 +179,8 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print(" ms\nMinimum total time: ");
 	print(total_time.count()); 
 
-	print(" ms\n\nTotal test result: "); print(all_correct);
-	print("\nCorrect count: "); print(cc);
+	print(" ms\n\nTotal test result: "); print(cc / (cc + incc));
+	print("%\nCorrect count: "); print(cc);
 	print("\nIncorrect count: "); print(incc);
 	print("\n-----------------------------------------------------------------------");
 }
