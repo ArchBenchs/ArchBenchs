@@ -1,6 +1,8 @@
 TestSystem:
 
------------------------------- Test 1 ------------------------------
+------------------------------------------- Test 1 -------------------------------------------
+Infinite cond(A): 0; Matrix A is good-conditioned.
+
 Matrix A:
 2 3 1 
 4 7 7 
@@ -20,11 +22,13 @@ Matrix Res = L * U:
 2 3 1 
 4 7 7 
 6 18 22 
---------------------------------------------------------------------
+----------------------------------------------------------------------------------------------
 Test1: true
 
 
------------------------------- Test 2 ------------------------------
+------------------------------------------- Test 2 -------------------------------------------
+Infinite cond(A): 0; Matrix A is good-conditioned.
+
 Matrix A:
 2 3 1 1 
 4 7 7 1 
@@ -48,61 +52,87 @@ Matrix Res = L * U:
 4 7 7 1 
 6 18 22 1 
 1 1 1 1 
---------------------------------------------------------------------
+----------------------------------------------------------------------------------------------
 Test2: true
 
 
------------------------------- Test 3 ------------------------------
+------------------------------------------- Test 3 -------------------------------------------
+Infinite cond(A): 0.855211; Matrix A is good-conditioned.
+
 Matrix A:
-494551 30769.9 -945974 -372950 
--183821 -280100 676033 -479141 
--231098 533944 -182170 240581 
--630345 254033 -795749 852777 
+-856385 739297 919577 -114947 
+-443261 351920 502165 23209.5 
+-647181 -677614 864114 -393564 
+432147 -125788 -257278 218940 
 
 Matrix L:
 1 0 0 0 
--0.371693 1 0 0 
--0.467287 -2.04093 1 0 
--1.27458 -1.09152 -43.4541 1 
+0.517596 1 0 0 
+0.755712 40.2226 1 0 
+-0.504618 -8.04492 -0.472029 1 
 
 Matrix U:
-494551 30769.9 -945974 -372950 
-0 -268663 324421 -617764 
-0 0 37910.1 -1.19451e+06 
-0 0 0 -5.22032e+07 
+-856385 739297 919577 -114947 
+0 -30736.7 26195.5 82705.4 
+0 0 -884474 -3.63333e+06 
+0 0 0 -888742 
 
 Matrix Res = L * U:
-494551 30769.9 -945974 -372950 
--183821 -280100 676033 -479141 
--231098 533944 -182170 240581 
--630345 254033 -795749 852777 
---------------------------------------------------------------------
+-856385 739297 919577 -114947 
+-443261 351920 502165 23209.5 
+-647181 -677614 864114 -393564 
+432147 -125788 -257278 218940 
+----------------------------------------------------------------------------------------------
 Test3: true
 
 
------------------------------- Test 4 ------------------------------
---------------------------------------------------------------------
+------------------------------------------- Test 4 -------------------------------------------
+Infinite cond(A): 1305.09; WARNING! Matrix A is ill-conditioned!
+
+----------------------------------------------------------------------------------------------
 Test4: true
 
 
 
------------------------------- Test time ------------------------------
-Testing with n = 3000, 1 times:
-Minimum time for init random matrix: 139 ms
-Minimum time for LU decomposition: 1368 ms
-Minimum total time: 1508 ms
+------------------------------------------- Test time -------------------------------------------
+Testing with n = 3000, 5 times:
+
+1) Infinite cond(A): 1.02671e+06; CRITICAL! Matrix A is singular-conditioned! Test result: true
+
+2) Infinite cond(A): 6713.52; WARNING! Matrix A is ill-conditioned! Test result: true
+
+3) Infinite cond(A): 880314; WARNING! Matrix A is ill-conditioned! Test result: true
+
+4) Infinite cond(A): 524847; WARNING! Matrix A is ill-conditioned! Test result: true
+
+5) Infinite cond(A): 10081; WARNING! Matrix A is ill-conditioned! Test result: true
+
+Minimum time for init random matrix: 107 ms
+Minimum time for LU decomposition: 1009 ms
+Minimum total time: 1116 ms
 
 Total test result: 100%
-Correct count: 1
+Correct count: 5
 Incorrect count: 0
------------------------------------------------------------------------
------------------------------- Test time ------------------------------
-Testing with n = 5000, 1 times:
-Minimum time for init random matrix: 371 ms
-Minimum time for LU decomposition: 4287 ms
-Minimum total time: 4658 ms
+-------------------------------------------------------------------------------------------------
+------------------------------------------- Test time -------------------------------------------
+Testing with n = 5000, 5 times:
 
-Total test result: 100%
-Correct count: 1
-Incorrect count: 0
------------------------------------------------------------------------
+1) Infinite cond(A): 847829; WARNING! Matrix A is ill-conditioned! Test result: true
+
+2) Infinite cond(A): 1.53279e+07; CRITICAL! Matrix A is singular-conditioned! Test result: false
+
+3) Infinite cond(A): 2.47383e+06; CRITICAL! Matrix A is singular-conditioned! Test result: true
+
+4) Infinite cond(A): 537451; WARNING! Matrix A is ill-conditioned! Test result: true
+
+5) Infinite cond(A): 355696; WARNING! Matrix A is ill-conditioned! Test result: true
+
+Minimum time for init random matrix: 307 ms
+Minimum time for LU decomposition: 3037 ms
+Minimum total time: 3368 ms
+
+Total test result: 80%
+Correct count: 4
+Incorrect count: 1
+-------------------------------------------------------------------------------------------------

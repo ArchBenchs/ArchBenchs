@@ -1,4 +1,5 @@
 #include "square_matrix.h"
+#include "limits.h"
 #include <omp.h>
 
 SquareMatrix::SquareMatrix(size_t s, Type* in_arr) {
@@ -38,9 +39,6 @@ SquareMatrix& SquareMatrix::operator=(SquareMatrix&& m) noexcept {
 	m.array = nullptr;
 	return *this;
 }
-
-Type& SquareMatrix::at(size_t i, size_t j) { return array[i * size + j]; }
-const Type& SquareMatrix::at(size_t i, size_t j) const { return array[i * size + j]; }
 
 SquareMatrix SquareMatrix::operator+(const SquareMatrix& m) {
 	SquareMatrix res(m);
@@ -124,6 +122,57 @@ SquareMatrix SquareMatrix::old_multi(const SquareMatrix& m)
 	return res;
 }
 
+Type SquareMatrix::get_infinite_norm() const {
+	Type curr_max = numeric_limits<Type>::lowest();
+	Type sum = 0.0; //Type* str = array;
+#pragma omp parallel for collapse(2)
+	//for (int i = 0; i < size; ++i) {
+	//	for (int j = 0; j < size; ++j) { 
+	//		sum += str[j];
+	//	}
+	//	curr_max = (curr_max < sum) ? sum : curr_max;
+	//	sum = 0.0;
+	//	str = array + (i + 1) * size;
+	//}
+	for (int i = 0; i < size; ++i) { //#pragma simd reduction(+:sum)
+		for (int j = 0; j < size; ++j) {
+			sum += array[i * size + j];
+		}
+		curr_max = (curr_max < sum) ? sum : curr_max;
+		sum = 0.0;
+	}
+	return curr_max;
+}
+
+double SquareMatrix::get_frobenius_norm() const {
+	Type sum = 0.0; size_t sz = size * size;
+#pragma omp parallel for reduction(+:sum)
+	for (int i = 0; i < sz; ++i) { sum = sum + array[i] * array[i]; }
+	return sqrt(sum);
+}
+
+Type SquareMatrix::get_one_norm() const {
+	Type curr_max = numeric_limits<Type>::lowest();
+	Type sum = 0.0; //Type* col = array;
+#pragma omp parallel for collapse(2)
+	//for (int i = 0; i < size; ++i) { //#pragma simd reduction(+:sum)
+	//	for (int j = 0; j < size; ++j) {
+	//		sum += col[j * size];
+	//	}
+	//	curr_max = (curr_max < sum) ? sum : curr_max;
+	//	sum = 0.0;
+	//	col = array + i;
+	//}
+	for (int i = 0; i < size; ++i) {
+		for (int j = 0; j < size; ++j) {
+			sum += array[i + j * size];
+		}
+		curr_max = (curr_max < sum) ? sum : curr_max;
+		sum = 0.0;
+	}
+	return curr_max;
+}
+
 void SquareMatrix::crop(size_t csi, size_t rsi, size_t sz, Type* res_arr) const {
 	size_t thsz = this->size;
 	Type* tharr = this->array + rsi * thsz + csi;
@@ -137,17 +186,18 @@ void SquareMatrix::crop(size_t csi, size_t rsi, size_t sz, Type* res_arr) const 
 bool SquareMatrix::operator==(const SquareMatrix& m) {
 	if (size != m.size) return false;
 	double eps = 1e-4;
+	//double rel_eps = size * size * machine_eps;
 	for (size_t i = 0; i < size; i++) {
 		for (size_t j = 0; j < size; j++) {
 			size_t index = i * size + j;
 
 			Type a = array[index];
 			Type b = m.array[index];
-
-			if (std::fabs(a - b) <= eps) continue;
-
-			Type max_val = std::max(std::fabs(a), std::fabs(b));
-			if (max_val > eps && std::fabs(a - b) / max_val <= eps) continue;
+			if (a == b) continue;
+			if ((a > -1.0 && a < 1.0) && (b > -1.0 && a < 1.0)) {
+				if (compare_eps(a, b, eps)) continue;
+			}
+			else { if (compare_rel(a, b, eps)) continue; }
 
 			return false;
 		}
@@ -266,6 +316,7 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 				Type* L_ix = m_arr_p + i * start_size;
 				for (int k = 0; k < block_size; k++) {
 					Type* L_ik = L_ix + k;
+// #pragma omp simd // - не векторизуется
 					for (int j = 0; j < k; j++) {
 						Type* L_ij = L_ix + j;
 						Type* U_jx = m_arr_p + j * start_size;
@@ -284,7 +335,7 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 				for (int k = 0; k < block_size; ++k) {
 					Type* m_kx = m_arr_p + k * start_size;
 					Type* m_kj = m_kx + j;
-
+// #pragma omp simd // - не векторизуется
 					for (int i = 0; i < k; ++i) {
 						Type* m_ki = m_kx + i;
 						Type* m_ij = m_xj + i * start_size;
@@ -307,6 +358,7 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 					for (int k = 0; k < block_size; ++k) {
 						Type L_ik = *(L_ix + k);
 						Type* U_kx = m_arr_p + k * start_size;
+#pragma omp simd
 						for (int j = j0; j < j1; ++j) {
 							A22_irow[j] -= L_ik * *(U_kx + j);
 						}

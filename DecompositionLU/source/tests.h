@@ -40,7 +40,7 @@ private:
 	// how_many_times - сколько раз прогнать
 	static void test_time(size_t _n, size_t how_many_times = 1);
 	// внутренн€€ функци€ test_time
-	static ReturnedResults single_test_time(size_t n);
+	static ReturnedResults single_test_time(size_t n, size_t iter);
 
 	// функци€ добавлени€ всех тестов работоспособности в work_tests
 	static void add_tests();
@@ -57,6 +57,9 @@ private:
 	static inline void print(const T& value) { *out << value; }
 
 	static inline void p_endl() { *out << std::endl; }
+
+	// специальна€ функци€, анализирующа€ входное число как число обусловленности матрицы
+	static void analyze_cond(double cond);
 public:
 	static void run_all_tests(size_t n = 5000, size_t count = 1, std::string filename = "");
 };

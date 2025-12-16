@@ -11,6 +11,8 @@ private:
 	Type* array;
 	static constexpr size_t TypeSize = sizeof(Type);
 public:
+	static constexpr Type mashine_eps = numeric_limits<Type>::epsilon();
+
 	SquareMatrix(size_t s, Type* in_arr = nullptr);
 	~SquareMatrix();
 
@@ -23,11 +25,6 @@ public:
 	SquareMatrix(SquareMatrix&& m) noexcept;
 	// перемещающий оператор присваивания
 	SquareMatrix& operator=(SquareMatrix&& m) noexcept;
-
-	// индексация с контролем
-
-	Type& at(size_t i, size_t j);
-	const Type& at(size_t i, size_t j) const;
 
 	// индексация
 
@@ -44,6 +41,12 @@ public:
 	SquareMatrix operator*(const SquareMatrix& m);
 	// старая версия для замеров и сравнения
 	SquareMatrix old_multi(const SquareMatrix& m);
+
+	// получение нормы матрицы
+
+	Type get_infinite_norm() const;
+	double get_frobenius_norm() const;
+	Type get_one_norm() const;
 
 	// пишет в res_arr копию участка массива исходной 
 	// матрицы, csi и rsi - начальные индексы столбцов и рядов исходной матрицы, откуда будут браться 
@@ -70,3 +73,13 @@ public:
 void get_LU(SquareMatrix& matrix_pointer);
 // целевая тестируемая функция, вторая версия (блочная, не рекурсивная), на вход поступает не матрица, а ее массив
 void block_get_LU(Type* m_arr_p, size_t curr_sz, size_t start_sz);
+// сравнивает значения, используя абсолютную погрешность
+inline bool compare_eps(const Type& arg1, const Type& arg2, const Type& eps) {
+	return fabs(arg1 - arg2) <= eps;
+}
+// сравнивает значения, используя относительную погрешность
+inline bool compare_rel(const Type& arg1, const Type& arg2, const Type& eps) {
+	Type abs1 = fabs(arg1), abs2 = fabs(arg2);
+	Type max = (abs1 > abs2) ? abs1 : abs2;
+	return fabs(arg1 - arg2) <= max * eps;
+}
