@@ -1,5 +1,6 @@
 #pragma once
 
+#include <random>
 #include <iostream>
 using namespace std;
 
@@ -14,6 +15,8 @@ public:
 	static constexpr Type mashine_eps = numeric_limits<Type>::epsilon();
 
 	SquareMatrix(size_t s, Type* in_arr = nullptr);
+	// заполняет матрицу случайными значениями в заданном диапазоне 
+	SquareMatrix(size_t s, Type min, Type max);
 	~SquareMatrix();
 
 	// конструктор копирования

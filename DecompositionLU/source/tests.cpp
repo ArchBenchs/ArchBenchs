@@ -1,8 +1,6 @@
 #include "tests.h"
 #include "square_matrix.h"
 
-#include <random>
-
 #define TP steady_clock::time_point 
 #define NOW steady_clock::now()
 
@@ -49,7 +47,6 @@ void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 		print((last_res) ? "true\n\n" : "false\n\n");
 		if (consol) *out << "\033[0m";
 	} p_endl();
-	test_time(3000, 5);
 	test_time(n, count);
 
 	if (filename != "") { file_out.close(); }
@@ -69,7 +66,6 @@ bool TestSystem::test_LU(SquareMatrix& A, std::string test_num,
 
 	print_test_start(test_num);
 	analyze_cond(infinite_cond_A); p_endl(); p_endl();
-	/*if (test_num != "4") { print(LU); p_endl(); }*/
 	if (print_a) { print("Matrix A:\n"); print(A); p_endl(); }
 	if (print_lu) { print_LU(LU, *out); }
 	if (print_res) { print("Matrix Res = L * U:\n"); print(Res); }
@@ -103,35 +99,13 @@ bool TestSystem::test2() {
 
 bool TestSystem::test3() {
 	const size_t n = 4;
-
-	random_device rd;
-	mt19937 gen(rd());
-	uniform_real_distribution<double> double_generator(-1e6, 1e6);
-
-	SquareMatrix A(n);
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
-			A(i, j) = double_generator(gen);
-		}
-	}
-
+	SquareMatrix A(n, -1e6, 1e6);
 	return test_LU(A, "3", 1, 1, 1);
 }
 
 bool TestSystem::test4() {
 	const size_t n = 100;
-
-	random_device rd;
-	mt19937 gen(rd());
-	uniform_real_distribution<double> double_generator(-1e6, 1e6);
-
-	SquareMatrix A(n);
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
-			A(i, j) = double_generator(gen);
-		}
-	}
-
+	SquareMatrix A(n, -1e6, 1e6);
 	return test_LU(A, "4");
 }
 
@@ -144,34 +118,26 @@ void TestSystem::analyze_cond(double cond) {
 		if (cond >= 1e+3 && cond <= 1e+6) { cq = ill; }
 		else { cq = singular; }
 	}
+	bool consol = out == &cout;
 	switch (cq) {
 	case good:
-		if (out == &cout) { *out << "\033[32m"; } 
+		if (consol) { *out << "\033[32m"; }
 		print("Matrix A is good-conditioned."); break;
 	case ill:
-		if (out == &cout) { *out << "\033[33m"; } 
+		if (consol) { *out << "\033[33m"; }
 		print("WARNING! Matrix A is ill-conditioned!"); break;
 	case singular:
-		if (out == &cout) { *out << "\033[31m"; } 
+		if (consol) { *out << "\033[31m"; }
 		print("CRITICAL! Matrix A is singular-conditioned!"); break;
-	} if (out == &cout) { *out << "\033[0m"; }
+	} if (consol) { *out << "\033[0m"; }
 }
 
 ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	ReturnedResults results;
 	TP start_init = NOW;
 
-	random_device rd;
-	mt19937 gen(rd());
-	uniform_real_distribution<double> double_generator(-1e6, 1e6);
-
-	SquareMatrix A(n), LU(n);
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
-			double val = double_generator(gen);
-			A(i, j) = val; LU(i, j) = val;
-		}
-	}
+	SquareMatrix A(n, -1e6, 1e6), LU(A);
+	
 	results.InitTime = duration_cast<milliseconds>(NOW - start_init);
 
 	TP start_LU = NOW;

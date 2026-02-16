@@ -8,6 +8,24 @@ SquareMatrix::SquareMatrix(size_t s, Type* in_arr) {
 	if (in_arr != nullptr)
 		std::copy(in_arr, in_arr + size * size, array);
 }
+SquareMatrix::SquareMatrix(size_t s, Type min, Type max) {
+	size = s;
+	array = new Type[size * size];
+
+	random_device rd; mt19937 gen(rd());
+	uniform_real_distribution<Type> common_generator(min, max);
+	uniform_real_distribution<Type> positive_generator(0, max / 2);
+
+	for (size_t i = 0; i < s; i++) {
+		Type sum = 0;
+		Type* str = array + i * size;
+		for (size_t j = 0; j < s; j++) {
+			Type val = common_generator(gen);
+			str[j] = val; sum += fabs(val);
+		}
+		str[i] = sum + positive_generator(gen);
+	}
+}
 SquareMatrix::~SquareMatrix() { delete[] array; }
 
 SquareMatrix::SquareMatrix(const SquareMatrix& m) {
@@ -124,19 +142,11 @@ SquareMatrix SquareMatrix::old_multi(const SquareMatrix& m)
 
 Type SquareMatrix::get_infinite_norm() const {
 	Type curr_max = numeric_limits<Type>::lowest();
-	Type sum = 0.0; //Type* str = array;
+	Type sum = 0.0;
 #pragma omp parallel for collapse(2)
-	//for (int i = 0; i < size; ++i) {
-	//	for (int j = 0; j < size; ++j) { 
-	//		sum += str[j];
-	//	}
-	//	curr_max = (curr_max < sum) ? sum : curr_max;
-	//	sum = 0.0;
-	//	str = array + (i + 1) * size;
-	//}
 	for (int i = 0; i < size; ++i) { //#pragma simd reduction(+:sum)
 		for (int j = 0; j < size; ++j) {
-			sum += array[i * size + j];
+			sum += fabs(array[i * size + j]);
 		}
 		curr_max = (curr_max < sum) ? sum : curr_max;
 		sum = 0.0;
@@ -153,19 +163,11 @@ double SquareMatrix::get_frobenius_norm() const {
 
 Type SquareMatrix::get_one_norm() const {
 	Type curr_max = numeric_limits<Type>::lowest();
-	Type sum = 0.0; //Type* col = array;
+	Type sum = 0.0;
 #pragma omp parallel for collapse(2)
-	//for (int i = 0; i < size; ++i) { //#pragma simd reduction(+:sum)
-	//	for (int j = 0; j < size; ++j) {
-	//		sum += col[j * size];
-	//	}
-	//	curr_max = (curr_max < sum) ? sum : curr_max;
-	//	sum = 0.0;
-	//	col = array + i;
-	//}
-	for (int i = 0; i < size; ++i) {
+	for (int i = 0; i < size; ++i) { //#pragma simd reduction(+:sum)
 		for (int j = 0; j < size; ++j) {
-			sum += array[i + j * size];
+			sum += fabs(array[i + j * size]);
 		}
 		curr_max = (curr_max < sum) ? sum : curr_max;
 		sum = 0.0;
@@ -185,7 +187,7 @@ void SquareMatrix::crop(size_t csi, size_t rsi, size_t sz, Type* res_arr) const 
 
 bool SquareMatrix::operator==(const SquareMatrix& m) {
 	if (size != m.size) return false;
-	double eps = 1e-4;
+	double eps = 1e-9;
 	//double rel_eps = size * size * machine_eps;
 	for (size_t i = 0; i < size; i++) {
 		for (size_t j = 0; j < size; j++) {
