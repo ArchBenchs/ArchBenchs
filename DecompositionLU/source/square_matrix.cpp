@@ -317,15 +317,13 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 			for (int i = i0; i < i1; ++i) {
 				Type* L_ix = m_arr_p + i * start_size;
 				for (int k = 0; k < block_size; k++) {
-					Type* L_ik = L_ix + k;
-// #pragma omp simd // - не векторизуетс€
-					for (int j = 0; j < k; j++) {
-						Type* L_ij = L_ix + j;
-						Type* U_jx = m_arr_p + j * start_size;
-						*L_ik -= *(L_ij) * U_jx[k];
+					Type* U_xk = m_arr_p + k;
+					Type sum = 0.0;
+				#pragma omp simd reduction(+:sum)
+					for (int j = 0; j < k; ++j) {
+						sum += L_ix[j] * (*(U_xk + j * start_size));
 					}
-					Type* U_kx = m_arr_p + k * start_size;
-					*L_ik /= U_kx[k];
+					L_ix[k] = (L_ix[k] - sum) / (*(U_xk + k * start_size));
 				}
 			}
 		}
@@ -336,13 +334,12 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 				Type* m_xj = m_arr_p + j;
 				for (int k = 0; k < block_size; ++k) {
 					Type* m_kx = m_arr_p + k * start_size;
-					Type* m_kj = m_kx + j;
-// #pragma omp simd // - не векторизуетс€
+					Type sum = 0.0;
+				#pragma omp simd reduction(+:sum)
 					for (int i = 0; i < k; ++i) {
-						Type* m_ki = m_kx + i;
-						Type* m_ij = m_xj + i * start_size;
-						*m_kj -= (*m_ki) * (*m_ij);
+						sum += m_kx[i] * (*(m_xj + i * start_size));
 					}
+					m_kx[j] -= sum;
 				}
 			}
 		}
@@ -353,18 +350,29 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
 				int i1 = std::min(i0 + block_size, curr_size);
 				int j1 = std::min(j0 + block_size, curr_size);
-
 				for (int i = i0; i < i1; ++i) {
 					Type* A22_irow = m_arr_p + i * start_size;
 					Type* L_ix = m_arr_p + i * start_size;
+					// попыталс€ сделать так, вп€теро медленнее получилось (не преувеличение)
+
+					/*for (int j = j0; j < j1; ++j) {
+						Type* U_xj = m_arr_p + j;
+						Type sum = 0.0;
+					#pragma omp simd reduction(+:sum)
+						for (int k = 0; k < block_size; ++k) {
+							sum += L_ix[k] * (*(U_xj + k * start_size));
+						}
+						A22_irow[j] -= sum;
+					}	*/
+
+					// #pragma omp simd // векторизаци€ здесь почему то ломает вообще всЄ
 					for (int k = 0; k < block_size; ++k) {
 						Type L_ik = *(L_ix + k);
 						Type* U_kx = m_arr_p + k * start_size;
-#pragma omp simd
+					#pragma omp simd 
 						for (int j = j0; j < j1; ++j) {
-							A22_irow[j] -= L_ik * *(U_kx + j);
+							A22_irow[j] -= L_ik * U_kx[j];
 						}
-						// энтринтики не используем, чтоб кроссплатформенный код был
 					}
 				}
 			}
@@ -372,3 +380,9 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 		curr_size -= block_size;
 	}
 }
+
+///
+/// ѕо€снение:
+/// ” мен€ в тетради есть расписанна€ маленько эта операци€ с L22 * U22
+/// я не придумал, как и зачем это блочить по  
+///
