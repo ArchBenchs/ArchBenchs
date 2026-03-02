@@ -194,5 +194,5 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print(" ms\n\nTotal test result: "); print(cc / (cc + incc) * 100);
 	print("%\nCorrect count: "); print(cc);
 	print("\nIncorrect count: "); print(incc);
-	print("\n-------------------------------------------------------------------------------------------------");
+	print("\n-------------------------------------------------------------------------------------------------\n");
 }

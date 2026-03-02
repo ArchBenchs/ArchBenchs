@@ -2,13 +2,14 @@
 
 #include <random>
 #include <iostream>
+#include <omp.h>
 using namespace std;
 
 typedef double Type;
 
 class SquareMatrix {
 private:
-	size_t size;
+	size_t size; // размер строки матрицы
 	Type* array;
 	static constexpr size_t TypeSize = sizeof(Type);
 public:
@@ -51,11 +52,6 @@ public:
 	double get_frobenius_norm() const;
 	Type get_one_norm() const;
 
-	// пишет в res_arr копию участка массива исходной 
-	// матрицы, csi и rsi - начальные индексы столбцов и рядов исходной матрицы, откуда будут браться 
-	// данные, sz - размер участка
-	void crop(size_t csi, size_t rsi, size_t sz, Type* res_arr) const;
-
 	inline Type*& get_array() { return array; }
 	inline void set_array(Type*&& arr) { array = arr; }
 
@@ -76,6 +72,7 @@ public:
 void get_LU(SquareMatrix& matrix_pointer);
 // целевая тестируемая функция, вторая версия (блочная, не рекурсивная), на вход поступает не матрица, а ее массив
 void block_get_LU(Type* m_arr_p, size_t curr_sz, size_t start_sz);
+
 // сравнивает значения, используя абсолютную погрешность
 inline bool compare_eps(const Type& arg1, const Type& arg2, const Type& eps) {
 	return fabs(arg1 - arg2) <= eps;

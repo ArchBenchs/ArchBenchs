@@ -2,15 +2,48 @@
 #include "limits.h"
 #include <omp.h>
 
+#ifdef _WIN32
+#include <malloc.h>  
+#endif
+
+#define BLOCK_SIZE 64
+
+static inline size_t round_up(size_t n, size_t align) {
+	return (n + align - 1) & ~(align - 1);
+}
+
+void* aligned_malloc(size_t size, size_t alignment) {
+#ifdef _WIN32
+	return _aligned_malloc(size, alignment);
+#else
+	size_t alloc_size = round_up(size, alignment);
+	return aligned_alloc(alignment, alloc_size);
+#endif
+}
+void aligned_free(void* ptr) {
+#ifdef _WIN32
+	_aligned_free(ptr);
+#else
+	free(ptr);
+#endif
+}
+
 SquareMatrix::SquareMatrix(size_t s, Type* in_arr) {
 	size = s;
-	array = new Type[size * size]{};
-	if (in_arr != nullptr)
-		std::copy(in_arr, in_arr + size * size, array);
+	size_t bytes = size * size * TypeSize;
+
+	array = (Type*)aligned_malloc(bytes, BLOCK_SIZE);
+	if (!array) throw bad_alloc();
+
+	if (in_arr != nullptr) { std::memcpy(array, in_arr, bytes); }
+	else { std::memset(array, 0, bytes); }
 }
 SquareMatrix::SquareMatrix(size_t s, Type min, Type max) {
 	size = s;
-	array = new Type[size * size];
+	size_t bytes = size * size * TypeSize;
+
+	array = (Type*)aligned_malloc(bytes, BLOCK_SIZE);
+	if (!array) throw bad_alloc();
 
 	random_device rd; mt19937 gen(rd());
 	uniform_real_distribution<Type> common_generator(min, max);
@@ -26,19 +59,28 @@ SquareMatrix::SquareMatrix(size_t s, Type min, Type max) {
 		str[i] = sum + positive_generator(gen);
 	}
 }
-SquareMatrix::~SquareMatrix() { delete[] array; }
+SquareMatrix::~SquareMatrix() { aligned_free(array); }
 
 SquareMatrix::SquareMatrix(const SquareMatrix& m) {
 	size = m.size;
-	array = new Type[size * size];
-	memcpy(array, m.array, size * size * TypeSize);
+	size_t bytes = size * size * TypeSize;
+
+	array = (Type*)aligned_malloc(bytes, BLOCK_SIZE);
+	if (!array) throw bad_alloc();
+
+	memcpy(array, m.array, bytes);
 }
 SquareMatrix& SquareMatrix::operator=(const SquareMatrix& m) {
 	if (this == &m) return *this;
-	delete[] array;
+	aligned_free(array);
+
 	size = m.size;
-	array = new Type[size * size];
-	memcpy(array, m.array, size * size * TypeSize);
+	size_t bytes = size * size * TypeSize;
+
+	array = (Type*)aligned_malloc(bytes, BLOCK_SIZE);
+	if (!array) throw bad_alloc();
+
+	memcpy(array, m.array, bytes);
 	return *this;
 }
 
@@ -50,7 +92,7 @@ SquareMatrix::SquareMatrix(SquareMatrix&& m) noexcept {
 }
 SquareMatrix& SquareMatrix::operator=(SquareMatrix&& m) noexcept {
 	if (this == &m) return *this;
-	delete[] array;
+	aligned_free(array);
 	size = m.size;
 	array = m.array;
 	m.size = 0;
@@ -81,7 +123,7 @@ SquareMatrix SquareMatrix::operator-(const SquareMatrix& m) {
 SquareMatrix SquareMatrix::operator*(const SquareMatrix& m)
 {
 	const size_t n = size;
-	const size_t block_size = 64;
+	const size_t block_size = BLOCK_SIZE;
 
 	SquareMatrix res(n);
 
@@ -142,14 +184,14 @@ SquareMatrix SquareMatrix::old_multi(const SquareMatrix& m)
 
 Type SquareMatrix::get_infinite_norm() const {
 	Type curr_max = numeric_limits<Type>::lowest();
-	Type sum = 0.0;
-#pragma omp parallel for collapse(2)
-	for (int i = 0; i < size; ++i) { //#pragma simd reduction(+:sum)
+
+#pragma omp parallel for reduction(max:curr_max)
+	for (int i = 0; i < size; ++i) {
+		Type sum = 0.0;
 		for (int j = 0; j < size; ++j) {
 			sum += fabs(array[i * size + j]);
 		}
-		curr_max = (curr_max < sum) ? sum : curr_max;
-		sum = 0.0;
+		if (sum > curr_max) curr_max = sum;
 	}
 	return curr_max;
 }
@@ -163,26 +205,16 @@ double SquareMatrix::get_frobenius_norm() const {
 
 Type SquareMatrix::get_one_norm() const {
 	Type curr_max = numeric_limits<Type>::lowest();
-	Type sum = 0.0;
-#pragma omp parallel for collapse(2)
-	for (int i = 0; i < size; ++i) { //#pragma simd reduction(+:sum)
+
+#pragma omp parallel reduction(max:curr_max)
+	for (int i = 0; i < size; ++i) {
+		Type sum = 0.0;
 		for (int j = 0; j < size; ++j) {
 			sum += fabs(array[i + j * size]);
 		}
 		curr_max = (curr_max < sum) ? sum : curr_max;
-		sum = 0.0;
 	}
 	return curr_max;
-}
-
-void SquareMatrix::crop(size_t csi, size_t rsi, size_t sz, Type* res_arr) const {
-	size_t thsz = this->size;
-	Type* tharr = this->array + rsi * thsz + csi;
-	for (size_t i = 0; i < sz; ++i) {
-		Type* this_str = tharr + i * thsz;
-		Type* arr_str = res_arr + i * sz;
-		std::copy(this_str, this_str + sz, arr_str);
-	}
 }
 
 bool SquareMatrix::operator==(const SquareMatrix& m) {
@@ -279,10 +311,10 @@ void get_LU(SquareMatrix& matrix_pointer) {
 }
 
 void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
-	const int block_size = 32;
+	const int block_size = BLOCK_SIZE;
 
 	int curr_size = (int)curr_sz;
-	int start_size = (int)start_sz; 
+	int start_size = (int)start_sz;
 	int iter_max = start_size * start_size;
 	int iter_step = block_size * start_size + block_size;
 
@@ -293,59 +325,59 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 		int lim = (flag) ? curr_size : block_size;
 
 		// L11 & U11
-		size_t k_iter_max = lim - 1;
-		for (size_t k = 0; k < k_iter_max; k++) {
+		for (size_t k = 0; k < lim - 1; k++) {
 			Type* A_ik_p = m_arr_p + k;
 			Type* U_ki_p = m_arr_p + k * start_size;
 			Type A_kk = m_arr_p[k * start_size + k];
-#pragma omp parallel for
+		#pragma omp parallel for
 			for (int i = k + 1; i < lim; i++) {
 				Type* A_k_p = A_ik_p + i * start_size;
 				Type* A_irow = m_arr_p + i * start_size;
 				(*A_k_p) /= A_kk;
-#pragma omp simd 
+			#pragma omp simd
 				for (int j = k + 1; j < lim; j++) {
-					A_irow[j] -= (*A_k_p) * U_ki_p[j];	
-				}	
+					A_irow[j] -= (*A_k_p) * U_ki_p[j];
+				}
 			}
 		}
 		if (flag) return;
-
-#pragma omp parallel for // L21
-		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
-			int i1 = std::min(i0 + block_size, curr_size);
-			for (int i = i0; i < i1; ++i) {
-				Type* L_ix = m_arr_p + i * start_size;
-				for (int k = 0; k < block_size; k++) {
-					Type* U_xk = m_arr_p + k;
-					Type sum = 0.0;
-				#pragma omp simd reduction(+:sum)
-					for (int j = 0; j < k; ++j) {
-						sum += L_ix[j] * (*(U_xk + j * start_size));
+#pragma omp parallel 
+		{
+		#pragma omp for  // L21
+			for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
+				int i1 = std::min(i0 + block_size, curr_size);
+				for (int i = i0; i < i1; ++i) {
+					Type* L_ix = m_arr_p + i * start_size;
+					for (int k = 0; k < block_size; k++) {
+						Type* U_xk = m_arr_p + k;
+						Type sum = 0.0;
+					#pragma omp simd reduction(+:sum)
+						for (int j = 0; j < k; ++j) {
+							sum += L_ix[j] * (*(U_xk + j * start_size));
+						}
+						L_ix[k] = (L_ix[k] - sum) / (*(U_xk + k * start_size));
 					}
-					L_ix[k] = (L_ix[k] - sum) / (*(U_xk + k * start_size));
+				}
+			}
+		#pragma omp for  // U12
+			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
+				int j1 = std::min(j0 + block_size, curr_size);
+				for (int j = j0; j < j1; ++j) {
+					Type* m_xj = m_arr_p + j;
+					for (int k = 0; k < block_size; ++k) {
+						Type* m_kx = m_arr_p + k * start_size;
+						Type sum = 0.0;
+					#pragma omp simd reduction(+:sum)
+						for (int i = 0; i < k; ++i) {
+							sum += m_kx[i] * (*(m_xj + i * start_size));
+						}
+						m_kx[j] -= sum;
+					}
 				}
 			}
 		}
-#pragma omp parallel for // U12 
-		for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
-			int j1 = std::min(j0 + block_size, curr_size);
-			for (int j = j0; j < j1; ++j) {
-				Type* m_xj = m_arr_p + j;
-				for (int k = 0; k < block_size; ++k) {
-					Type* m_kx = m_arr_p + k * start_size;
-					Type sum = 0.0;
-				#pragma omp simd reduction(+:sum)
-					for (int i = 0; i < k; ++i) {
-						sum += m_kx[i] * (*(m_xj + i * start_size));
-					}
-					m_kx[j] -= sum;
-				}
-			}
-		}
-
 		// L22 * U22 = A22 - L21 * U12
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) schedule(dynamic)
 		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
 			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
 				int i1 = std::min(i0 + block_size, curr_size);
@@ -369,7 +401,7 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 					for (int k = 0; k < block_size; ++k) {
 						Type L_ik = *(L_ix + k);
 						Type* U_kx = m_arr_p + k * start_size;
-					#pragma omp simd 
+					#pragma omp simd
 						for (int j = j0; j < j1; ++j) {
 							A22_irow[j] -= L_ik * U_kx[j];
 						}
@@ -377,6 +409,7 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 				}
 			}
 		}
+#pragma omp single 
 		curr_size -= block_size;
 	}
 }
@@ -385,4 +418,5 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 /// ѕо€снение:
 /// ” мен€ в тетради есть расписанна€ маленько эта операци€ с L22 * U22
 /// я не придумал, как и зачем это блочить по  
+/// “ам € еще немного подумал по поводу цикла, который вп€теро медленнее работает, показать надо
 ///
