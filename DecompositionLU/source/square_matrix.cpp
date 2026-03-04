@@ -312,6 +312,7 @@ void get_LU(SquareMatrix& matrix_pointer) {
 
 void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 	const int block_size = BLOCK_SIZE;
+	const int kbs = block_size / 2;
 
 	int curr_size = (int)curr_sz;
 	int start_size = (int)start_sz;
@@ -341,37 +342,45 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 			}
 		}
 		if (flag) return;
-#pragma omp parallel 
+#pragma omp parallel // коллапсы тут почему-то привели к неправильным вычислениям.
 		{
-		#pragma omp for  // L21
+		#pragma omp for //collapse(2) schedule(dynamic) // L21
 			for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
-				int i1 = std::min(i0 + block_size, curr_size);
-				for (int i = i0; i < i1; ++i) {
-					Type* L_ix = m_arr_p + i * start_size;
-					for (int k = 0; k < block_size; k++) {
-						Type* U_xk = m_arr_p + k;
-						Type sum = 0.0;
-					#pragma omp simd reduction(+:sum)
-						for (int j = 0; j < k; ++j) {
-							sum += L_ix[j] * (*(U_xk + j * start_size));
+				for (int k0 = 0; k0 < block_size; k0 += kbs) {
+					int i1 = std::min(i0 + block_size, curr_size);
+					int k1 = std::min(k0 + kbs, block_size);
+					for (int i = i0; i < i1; ++i) {
+						Type* L_ix = m_arr_p + i * start_size;
+						for (int k = k0; k < k1; ++k) {
+							Type* U_xk = m_arr_p + k;
+							Type* L_ik_p = L_ix + k;
+							Type sum = 0.0;
+						#pragma omp simd reduction(+:sum)
+							for (int j = 0; j < k; ++j) {
+								sum += L_ix[j] * (*(U_xk + j * start_size));
+							}
+							*L_ik_p = (*L_ik_p - sum) / (*(U_xk + k * start_size));
 						}
-						L_ix[k] = (L_ix[k] - sum) / (*(U_xk + k * start_size));
 					}
 				}
+				
 			}
-		#pragma omp for  // U12
+		#pragma omp for //collapse(2) schedule(dynamic) // U12
 			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
-				int j1 = std::min(j0 + block_size, curr_size);
-				for (int j = j0; j < j1; ++j) {
-					Type* m_xj = m_arr_p + j;
-					for (int k = 0; k < block_size; ++k) {
+				for (int k0 = 0; k0 < block_size; k0 += kbs) {
+					int j1 = std::min(j0 + block_size, curr_size);
+					int k1 = std::min(k0 + kbs, block_size);
+					for (int k = k0; k < k1; ++k) {
 						Type* m_kx = m_arr_p + k * start_size;
-						Type sum = 0.0;
-					#pragma omp simd reduction(+:sum)
 						for (int i = 0; i < k; ++i) {
-							sum += m_kx[i] * (*(m_xj + i * start_size));
+							Type* m_ix = m_arr_p + i * start_size;
+							Type m_ki = m_kx[i];
+							//Type sum = 0.0;
+						#pragma omp simd //reduction(+:sum)
+							for (int j = j0; j < j1; ++j) {
+								m_kx[j] -= m_ki * m_ix[j];
+							}
 						}
-						m_kx[j] -= sum;
 					}
 				}
 			}
@@ -382,28 +391,31 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
 				int i1 = std::min(i0 + block_size, curr_size);
 				int j1 = std::min(j0 + block_size, curr_size);
-				for (int i = i0; i < i1; ++i) {
-					Type* A22_irow = m_arr_p + i * start_size;
-					Type* L_ix = m_arr_p + i * start_size;
-					// попытался сделать так, впятеро медленнее получилось (не преувеличение)
+				for (int k0 = 0; k0 < block_size; k0 += kbs) {
+					int k1 = std::min(k0 + kbs, block_size);
+					for (int i = i0; i < i1; ++i) {
+						Type* A22_irow = m_arr_p + i * start_size;
+						Type* L_ix = m_arr_p + i * start_size;
+						// попытался сделать так, впятеро медленнее получилось (не преувеличение)
 
-					/*for (int j = j0; j < j1; ++j) {
-						Type* U_xj = m_arr_p + j;
-						Type sum = 0.0;
-					#pragma omp simd reduction(+:sum)
-						for (int k = 0; k < block_size; ++k) {
-							sum += L_ix[k] * (*(U_xj + k * start_size));
-						}
-						A22_irow[j] -= sum;
-					}	*/
+						/*for (int j = j0; j < j1; ++j) {
+							Type* U_xj = m_arr_p + j;
+							Type sum = 0.0;
+						#pragma omp simd reduction(+:sum)
+							for (int k = 0; k < block_size; ++k) {
+								sum += L_ix[k] * (*(U_xj + k * start_size));
+							}
+							A22_irow[j] -= sum;
+						}	*/
 
-					// #pragma omp simd // векторизация здесь почему то ломает вообще всё
-					for (int k = 0; k < block_size; ++k) {
-						Type L_ik = *(L_ix + k);
-						Type* U_kx = m_arr_p + k * start_size;
-					#pragma omp simd
-						for (int j = j0; j < j1; ++j) {
-							A22_irow[j] -= L_ik * U_kx[j];
+						// #pragma omp simd // векторизация здесь почему то ломает вообще всё
+						for (int k = k0; k < k1; ++k) {
+							Type L_ik = *(L_ix + k);
+							Type* U_kx = m_arr_p + k * start_size;
+						#pragma omp simd
+							for (int j = j0; j < j1; ++j) {
+								A22_irow[j] -= L_ik * U_kx[j];
+							}
 						}
 					}
 				}
@@ -414,9 +426,17 @@ void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
 	}
 }
 
+/// Эти заметки я пишу перед занятием, чтобы не забыть некоторые важные вещи
 ///
 /// Пояснение:
 /// У меня в тетради есть расписанная маленько эта операция с L22 * U22
-/// Я не придумал, как и зачем это блочить по К
+/// Я не придумал, как и зачем это блочить по К (Upd: придумал в лоб, и почему-то это сработало)
 /// Там я еще немного подумал по поводу цикла, который впятеро медленнее работает, показать надо
-///
+/// 
+/// upd: скорость в 14000ms и меньше, вероятно, получалась из-за множества тестов подряд,
+/// т.е. когда я запускал тест с матрицами 10000х10000 5 раз подряд, хотя каждый раз 
+/// матрица создается по новой.
+/// 
+/// Прогонял через VTune до и после изменений, время простоем сократилось раза в 4, 
+/// А ВРЕМЯ ВЫЧИСЛЕНИЙ НЕМНОГО УВЕЛИЧИЛОСЬ. Я искренне не понимаю, что не так.
+/// 

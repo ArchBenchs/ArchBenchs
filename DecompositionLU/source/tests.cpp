@@ -161,7 +161,8 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	bool consol = (out == &cout);
 	if (results.is_correct) { if (consol) *out << "\033[32m"; print("true"); }
 	else { if (consol) *out << "\033[31m"; print("false"); }
-	if (consol) *out << "\033[0m"; 
+	if (consol) *out << "\033[0m" << " ";
+	print(results.LUTime.count());
 	p_endl();
 
 	return results;
