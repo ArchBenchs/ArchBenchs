@@ -17,13 +17,13 @@ struct ReturnedResults {
 	bool is_correct;
 };
 
-// массив указателей на функции тестов на работоспособность
-using WorkTestPtr = bool (*)();
+// указатель на функцию теста на работоспособность
+using WorkabilityTestPtr = bool (*)();
 
 class TestSystem {
 private:
 	// вектор тестов работоспособности
-	static std::vector<WorkTestPtr> work_tests;
+	static std::vector<WorkabilityTestPtr> workability_tests;
 
 	// сюда пошел обший код дл€ тестов на работоспособность
 	static bool test_LU(SquareMatrix& A, std::string test_num,
@@ -36,14 +36,10 @@ private:
 	static bool test3();
 	static bool test4();
 
-	// тест на оптимизацию и врем€ выполнени€, n - размер кв. матрицы, 
-	// how_many_times - сколько раз прогнать
+	// тест на оптимизацию и врем€ выполнени€, n - размер кв. матрицы, how_many_times - сколько раз запускать
 	static void test_time(size_t _n, size_t how_many_times = 1);
 	// внутренн€€ функци€ test_time
 	static ReturnedResults single_test_time(size_t n, size_t iter);
-
-	// функци€ добавлени€ всех тестов работоспособности в work_tests
-	static void add_tests();
 
 	// функции дл€ вывода
 
@@ -54,12 +50,15 @@ private:
 	static std::ostream* out;
 
 	template<typename T>
-	static inline void print(const T& value) { *out << value; }
+	static __forceinline void print(const T& value) { *out << value; }
 
-	static inline void p_endl() { *out << std::endl; }
+	static __forceinline void p_endl() { *out << std::endl; }
 
-	// специальна€ функци€, анализирующа€ входное число как число обусловленности матрицы
+	// функци€, анализирующа€ входное число как число обусловленности матрицы
 	static void analyze_cond(double cond);
 public:
+	// функци€, добавл€юща€ все тесты работоспособности в workability_tests
+	static void enable_workability_tests();
+
 	static void run_all_tests(size_t n = 5000, size_t count = 1, std::string filename = "");
 };

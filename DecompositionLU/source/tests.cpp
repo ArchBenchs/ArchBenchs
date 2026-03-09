@@ -1,65 +1,18 @@
 #include "tests.h"
-#include "square_matrix.h"
+#include "decomposer_lu.h"
 
-#define TP steady_clock::time_point 
-#define NOW steady_clock::now()
+// ----------------------------------------< workability tests >---------------------------------------------------
 
-std::vector<WorkTestPtr> TestSystem::work_tests;
-std::ofstream TestSystem::file_out;
-std::ostream* TestSystem::out = &std::cout;
-
-void TestSystem::add_tests() {
-	work_tests.push_back(TestSystem::test1);
-	work_tests.push_back(TestSystem::test2);
-	work_tests.push_back(TestSystem::test3);
-	work_tests.push_back(TestSystem::test4);
-}
-
-void TestSystem::print_test_start(std::string s) {
-	print("\n------------------------------------------- Test ");
-	print(s); print(" -------------------------------------------");
-	p_endl(); 
-}
-
-void TestSystem::print_test_end(std::string s) {
-	print("----------------------------------------------------------------------------------------------\nTest");
-	print(s); print(": ");
-}
-
-void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
-	if (filename != "") {
-		file_out.open(filename);
-		if (!file_out.is_open()) {
-			std::cerr << "Failed to open file: " << filename << std::endl;
-			out = &std::cout;
-		}
-		else { out = &file_out; }
-	}
-	print("TestSystem:\n");
-	add_tests(); bool last_res;
-	for (auto TestPtr : work_tests) {
-		last_res = (*TestPtr)();
-		bool consol = (out == &cout);
-		if (consol) {
-			if (last_res) *out << "\033[32m";
-			else *out << "\033[31m";
-		}
-		print((last_res) ? "true\n\n" : "false\n\n");
-		if (consol) *out << "\033[0m";
-	} p_endl();
-	test_time(n, count);
-
-	if (filename != "") { file_out.close(); }
-}
+std::vector<WorkabilityTestPtr> TestSystem::workability_tests;
 
 bool TestSystem::test_LU(SquareMatrix& A, std::string test_num,
 	bool print_a, bool print_lu, bool print_res) {
 
 	const size_t n = A.get_size();
 	SquareMatrix LU(A);
-	block_get_LU(LU.get_array(), n, n);
+	DecomposerLU::block_get_LU(LU.get_array(), n, n);
 	SquareMatrix L(n), U(n);
-	LU.decompose_LU(L, U);
+	DecomposerLU::decompose_LU(LU, L, U);
 	SquareMatrix Res = L * U;
 	double infinite_cond_A = (Res - A).get_infinite_norm() /
 		(A.get_infinite_norm() * SquareMatrix::mashine_eps);
@@ -67,7 +20,7 @@ bool TestSystem::test_LU(SquareMatrix& A, std::string test_num,
 	print_test_start(test_num);
 	analyze_cond(infinite_cond_A); p_endl(); p_endl();
 	if (print_a) { print("Matrix A:\n"); print(A); p_endl(); }
-	if (print_lu) { print_LU(LU, *out); }
+	if (print_lu) { DecomposerLU::print_LU(LU, *out); }
 	if (print_res) { print("Matrix Res = L * U:\n"); print(Res); }
 	print_test_end(test_num);
 
@@ -109,28 +62,12 @@ bool TestSystem::test4() {
 	return test_LU(A, "4");
 }
 
-enum cond_quality { good, ill, singular };
-void TestSystem::analyze_cond(double cond) {
-	print("Infinite cond(A): "); print(cond); print("; ");
-	cond_quality cq;
-	if (cond < 1e+3) { cq = good; }
-	else {
-		if (cond >= 1e+3 && cond <= 1e+6) { cq = ill; }
-		else { cq = singular; }
-	}
-	bool consol = out == &cout;
-	switch (cq) {
-	case good:
-		if (consol) { *out << "\033[32m"; }
-		print("Matrix A is good-conditioned."); break;
-	case ill:
-		if (consol) { *out << "\033[33m"; }
-		print("WARNING! Matrix A is ill-conditioned!"); break;
-	case singular:
-		if (consol) { *out << "\033[31m"; }
-		print("CRITICAL! Matrix A is singular-conditioned!"); break;
-	} if (consol) { *out << "\033[0m"; }
-}
+// ----------------------------------------------------------------------------------------------------------------
+
+// ----------------------------------------< time tests >----------------------------------------------------------
+
+#define TP steady_clock::time_point 
+#define NOW steady_clock::now()
 
 ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	ReturnedResults results;
@@ -141,13 +78,13 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	results.InitTime = duration_cast<milliseconds>(NOW - start_init);
 
 	TP start_LU = NOW;
-	block_get_LU(LU.get_array(), n, n);
+	DecomposerLU::block_get_LU(LU.get_array(), n, n);
 	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
 	results.TotalTime = duration_cast<milliseconds>(NOW - start_init);
 
 	SquareMatrix L(n), U(n);
-	LU.decompose_LU(L, U);
+	DecomposerLU::decompose_LU(LU, L, U);
 	SquareMatrix Res = L * U;
 	double infinite_cond_A = (Res - A).get_infinite_norm() /
 		(A.get_infinite_norm() * SquareMatrix::mashine_eps);
@@ -161,7 +98,8 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	bool consol = (out == &cout);
 	if (results.is_correct) { if (consol) *out << "\033[32m"; print("true"); }
 	else { if (consol) *out << "\033[31m"; print("false"); }
-	if (consol) *out << "\033[0m" << " ";
+	if (consol) *out << "\033[0m";
+	print(". LU Time: "); 
 	print(results.LUTime.count());
 	p_endl();
 
@@ -197,3 +135,83 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print("\nIncorrect count: "); print(incc);
 	print("\n-------------------------------------------------------------------------------------------------\n");
 }
+
+// ----------------------------------------------------------------------------------------------------------------
+
+// ----------------------------------------< printing >------------------------------------------------------------
+
+std::ofstream TestSystem::file_out;
+std::ostream* TestSystem::out = &std::cout;
+
+void TestSystem::print_test_start(std::string s) {
+	print("\n------------------------------------------- Test ");
+	print(s); print(" -------------------------------------------");
+	p_endl();
+}
+
+void TestSystem::print_test_end(std::string s) {
+	print("----------------------------------------------------------------------------------------------\nTest");
+	print(s); print(": ");
+}
+
+// ----------------------------------------------------------------------------------------------------------------
+
+// ----------------------------------------< other functions >----------------------------------------------------
+
+void TestSystem::enable_workability_tests() {
+	workability_tests.push_back(TestSystem::test1);
+	workability_tests.push_back(TestSystem::test2);
+	workability_tests.push_back(TestSystem::test3);
+	workability_tests.push_back(TestSystem::test4);
+}
+
+void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
+	if (filename != "") {
+		file_out.open(filename);
+		if (!file_out.is_open()) {
+			std::cerr << "Failed to open file: " << filename << std::endl;
+			out = &std::cout;
+		}
+		else { out = &file_out; }
+	}
+	print("TestSystem:\n");
+	bool last_res;
+	for (auto TestPtr : workability_tests) {
+		last_res = (*TestPtr)();
+		bool consol = (out == &cout);
+		if (consol) {
+			if (last_res) *out << "\033[32m";
+			else *out << "\033[31m";
+		}
+		print((last_res) ? "true\n\n" : "false\n\n");
+		if (consol) *out << "\033[0m";
+	} p_endl();
+	test_time(n, count);
+
+	if (filename != "") { file_out.close(); }
+}
+
+enum cond_quality { good, ill, singular };
+void TestSystem::analyze_cond(double cond) {
+	print("Infinite cond(A): "); print(cond); print("; ");
+	cond_quality cq;
+	if (cond < 1e+3) { cq = good; }
+	else {
+		if (cond >= 1e+3 && cond <= 1e+6) { cq = ill; }
+		else { cq = singular; }
+	}
+	bool consol = out == &cout;
+	switch (cq) {
+	case good:
+		if (consol) { *out << "\033[32m"; }
+		print("Matrix is good-conditioned."); break;
+	case ill:
+		if (consol) { *out << "\033[33m"; }
+		print("WARNING! Matrix is ill-conditioned."); break;
+	case singular:
+		if (consol) { *out << "\033[31m"; }
+		print("CRITICAL! Matrix is singular-conditioned!"); break;
+	} if (consol) { *out << "\033[0m"; }
+}
+
+// ----------------------------------------------------------------------------------------------------------------

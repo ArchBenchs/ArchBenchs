@@ -2,11 +2,11 @@
 #include "limits.h"
 #include <omp.h>
 
+// ----------------------------------------< allocation >----------------------------------------------------------
+
 #ifdef _WIN32
 #include <malloc.h>  
 #endif
-
-#define BLOCK_SIZE 64
 
 static inline size_t round_up(size_t n, size_t align) {
 	return (n + align - 1) & ~(align - 1);
@@ -27,6 +27,10 @@ void aligned_free(void* ptr) {
 	free(ptr);
 #endif
 }
+
+// ----------------------------------------------------------------------------------------------------------------
+
+// ----------------------------------------< constructors & destructor >-------------------------------------------
 
 SquareMatrix::SquareMatrix(size_t s, Type* in_arr) {
 	size = s;
@@ -61,6 +65,10 @@ SquareMatrix::SquareMatrix(size_t s, Type min, Type max) {
 }
 SquareMatrix::~SquareMatrix() { aligned_free(array); }
 
+// ----------------------------------------------------------------------------------------------------------------
+
+// ----------------------------------------< copy semantics >------------------------------------------------------
+
 SquareMatrix::SquareMatrix(const SquareMatrix& m) {
 	size = m.size;
 	size_t bytes = size * size * TypeSize;
@@ -84,6 +92,10 @@ SquareMatrix& SquareMatrix::operator=(const SquareMatrix& m) {
 	return *this;
 }
 
+// ----------------------------------------------------------------------------------------------------------------
+
+// ----------------------------------------< move semantics >------------------------------------------------------
+
 SquareMatrix::SquareMatrix(SquareMatrix&& m) noexcept {
 	size = m.size;
 	array = m.array;
@@ -99,6 +111,10 @@ SquareMatrix& SquareMatrix::operator=(SquareMatrix&& m) noexcept {
 	m.array = nullptr;
 	return *this;
 }
+
+// ----------------------------------------------------------------------------------------------------------------
+
+// ----------------------------------------< arithmetic >----------------------------------------------------------
 
 SquareMatrix SquareMatrix::operator+(const SquareMatrix& m) {
 	SquareMatrix res(m);
@@ -135,7 +151,7 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m)
 	for (int i0 = 0; i0 < n; i0 += block_size) {
 		for (int j0 = 0; j0 < n; j0 += block_size) {
 			int i1 = std::min(i0 + block_size, n);
-			int j1 = std::min(j0 + block_size, n);  // замерить сравнить
+			int j1 = std::min(j0 + block_size, n);
 			for (int k0 = 0; k0 < n; k0 += block_size) {
 				int k1 = std::min(k0 + block_size, n);
 				for (int i = i0; i < i1; ++i) {
@@ -156,35 +172,52 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m)
 	return res;
 }
 
-SquareMatrix SquareMatrix::old_multi(const SquareMatrix& m)
-{
-	const size_t n = size;
+// ----------------------------------------------------------------------------------------------------------------
 
-	SquareMatrix res(n);
+// ----------------------------------------< comparison >----------------------------------------------------------
 
-	Type* res_arr = res.array;
-	Type* this_arr = this->array;
-	Type* m_arr = m.array;
+// сравнивает значения, используя абсолютную погрешность
+inline bool compare_eps(const Type& arg1, const Type& arg2, const Type& eps) {
+	return fabs(arg1 - arg2) <= eps;
+}
+// сравнивает значения, используя относительную погрешность
+inline bool compare_rel(const Type& arg1, const Type& arg2, const Type& eps) {
+	Type abs1 = fabs(arg1), abs2 = fabs(arg2);
+	Type max = (abs1 > abs2) ? abs1 : abs2;
+	return fabs(arg1 - arg2) <= max * eps;
+}
 
-#pragma omp parallel for
-	for (int i = 0; i < n; ++i) {
-		Type* this_row = this_arr + i * n;
-		Type* res_row = res_arr + i * n;
-		for (int k = 0; k < n; ++k) {
-			Type this_val = this_row[k];
-			Type* m_row = m_arr + k * n;
-#pragma omp simd
-			for (int j = 0; j < n; ++j) {
-				res_row[j] += this_val * m_row[j];
+bool SquareMatrix::operator==(const SquareMatrix& m) {
+	if (size != m.size) return false;
+	double eps = 1e-9;
+	for (size_t i = 0; i < size; i++) {
+		for (size_t j = 0; j < size; j++) {
+			size_t index = i * size + j;
+
+			Type a = array[index];
+			Type b = m.array[index];
+			if (a == b) continue;
+			if ((a > -1.0 && a < 1.0) && (b > -1.0 && a < 1.0)) {
+				if (compare_eps(a, b, eps)) continue;
 			}
+			else { if (compare_rel(a, b, eps)) continue; }
+
+			return false;
 		}
 	}
-	return res;
+	return true;
 }
+
+bool SquareMatrix::operator!=(const SquareMatrix& m) {
+	return !(*this == m);
+}
+
+// ----------------------------------------------------------------------------------------------------------------
+
+// ----------------------------------------< norm calculation >----------------------------------------------------
 
 Type SquareMatrix::get_infinite_norm() const {
 	Type curr_max = numeric_limits<Type>::lowest();
-
 #pragma omp parallel for reduction(max:curr_max)
 	for (int i = 0; i < size; ++i) {
 		Type sum = 0.0;
@@ -205,7 +238,6 @@ double SquareMatrix::get_frobenius_norm() const {
 
 Type SquareMatrix::get_one_norm() const {
 	Type curr_max = numeric_limits<Type>::lowest();
-
 #pragma omp parallel reduction(max:curr_max)
 	for (int i = 0; i < size; ++i) {
 		Type sum = 0.0;
@@ -217,61 +249,10 @@ Type SquareMatrix::get_one_norm() const {
 	return curr_max;
 }
 
-bool SquareMatrix::operator==(const SquareMatrix& m) {
-	if (size != m.size) return false;
-	double eps = 1e-9;
-	//double rel_eps = size * size * machine_eps;
-	for (size_t i = 0; i < size; i++) {
-		for (size_t j = 0; j < size; j++) {
-			size_t index = i * size + j;
+// ----------------------------------------------------------------------------------------------------------------
 
-			Type a = array[index];
-			Type b = m.array[index];
-			if (a == b) continue;
-			if ((a > -1.0 && a < 1.0) && (b > -1.0 && a < 1.0)) {
-				if (compare_eps(a, b, eps)) continue;
-			}
-			else { if (compare_rel(a, b, eps)) continue; }
+// ----------------------------------------< I/O Stream >----------------------------------------------------------
 
-			return false;
-		}
-	}
-	return true;
-}
-
-void SquareMatrix::decompose_LU(SquareMatrix& L, SquareMatrix& U) {
-	const size_t n = size;
-	for (size_t i = 0; i < n; i++)
-		for (size_t j = 0; j < n; j++) {
-			if (j < i) L(i, j) = array[i * n + j];
-			if (j == i) L(i, j) = 1;
-		}
-	for (size_t i = 0; i < n; i++)
-		for (size_t j = 0; j < n; j++)
-			if (j >= i) U(i, j) = array[i * n + j];
-}
-
-void print_LU(const SquareMatrix& m, ostream& out) {
-	const size_t n = m.size;
-	out << "Matrix L:\n";
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
-			if (j < i) out << m(i, j);
-			else out << (int)(i == j);
-			out << " ";
-		}
-		out << endl;
-	} out << endl;
-	out << "Matrix U:\n";
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
-			if (j >= i) out << m(i, j);
-			else out << 0;
-			out << " ";
-		}
-		out << endl;
-	} out << endl;
-}
 istream& operator>>(istream& istr, SquareMatrix& m) {
 	size_t n = m.size;
 	for (size_t i = 0; i < n; i++)
@@ -289,154 +270,5 @@ ostream& operator<<(ostream& ostr, const SquareMatrix& m) noexcept {
 	return ostr;
 }
 
-void get_LU(SquareMatrix& matrix_pointer) {
-	Type*& m = matrix_pointer.get_array();
-	const size_t size = matrix_pointer.get_size();
-	size_t k_iter_max = size - 1;
-	for (size_t k = 0; k < k_iter_max; k++) {
-		Type* A_ik_p = m + k;
-		Type* U_ki_p = m + k * size;
-		Type A_kk = m[k * size + k];
-#pragma omp parallel for
-		for (int i = k + 1; i < size; i++) {
-			Type* A_k_p = A_ik_p + i * size;
-			Type* A_irow = m + i * size;
-			(*A_k_p) /= A_kk;
-#pragma omp simd 
-			for (int j = k + 1; j < size; j++) {
-				A_irow[j] -= (*A_k_p) * U_ki_p[j];
-			}
-		}
-	}
-}
+// ----------------------------------------------------------------------------------------------------------------
 
-void block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
-	const int block_size = BLOCK_SIZE;
-	const int kbs = block_size / 2;
-
-	int curr_size = (int)curr_sz;
-	int start_size = (int)start_sz;
-	int iter_max = start_size * start_size;
-	int iter_step = block_size * start_size + block_size;
-
-	for (int iter = 0; iter < iter_max; iter += iter_step) {
-		Type* m_arr_p = matrix_array_p + iter;
-
-		bool flag = curr_size <= block_size;
-		int lim = (flag) ? curr_size : block_size;
-
-		// L11 & U11
-		for (size_t k = 0; k < lim - 1; k++) {
-			Type* A_ik_p = m_arr_p + k;
-			Type* U_ki_p = m_arr_p + k * start_size;
-			Type A_kk = m_arr_p[k * start_size + k];
-		#pragma omp parallel for
-			for (int i = k + 1; i < lim; i++) {
-				Type* A_k_p = A_ik_p + i * start_size;
-				Type* A_irow = m_arr_p + i * start_size;
-				(*A_k_p) /= A_kk;
-			#pragma omp simd
-				for (int j = k + 1; j < lim; j++) {
-					A_irow[j] -= (*A_k_p) * U_ki_p[j];
-				}
-			}
-		}
-		if (flag) return;
-#pragma omp parallel // коллапсы тут почему-то привели к неправильным вычислениям.
-		{
-		#pragma omp for //collapse(2) schedule(dynamic) // L21
-			for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
-				for (int k0 = 0; k0 < block_size; k0 += kbs) {
-					int i1 = std::min(i0 + block_size, curr_size);
-					int k1 = std::min(k0 + kbs, block_size);
-					for (int i = i0; i < i1; ++i) {
-						Type* L_ix = m_arr_p + i * start_size;
-						for (int k = k0; k < k1; ++k) {
-							Type* U_xk = m_arr_p + k;
-							Type* L_ik_p = L_ix + k;
-							Type sum = 0.0;
-						#pragma omp simd reduction(+:sum)
-							for (int j = 0; j < k; ++j) {
-								sum += L_ix[j] * (*(U_xk + j * start_size));
-							}
-							*L_ik_p = (*L_ik_p - sum) / (*(U_xk + k * start_size));
-						}
-					}
-				}
-				
-			}
-		#pragma omp for //collapse(2) schedule(dynamic) // U12
-			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
-				for (int k0 = 0; k0 < block_size; k0 += kbs) {
-					int j1 = std::min(j0 + block_size, curr_size);
-					int k1 = std::min(k0 + kbs, block_size);
-					for (int k = k0; k < k1; ++k) {
-						Type* m_kx = m_arr_p + k * start_size;
-						for (int i = 0; i < k; ++i) {
-							Type* m_ix = m_arr_p + i * start_size;
-							Type m_ki = m_kx[i];
-							//Type sum = 0.0;
-						#pragma omp simd //reduction(+:sum)
-							for (int j = j0; j < j1; ++j) {
-								m_kx[j] -= m_ki * m_ix[j];
-							}
-						}
-					}
-				}
-			}
-		}
-		// L22 * U22 = A22 - L21 * U12
-#pragma omp parallel for collapse(2) schedule(dynamic)
-		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
-			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
-				int i1 = std::min(i0 + block_size, curr_size);
-				int j1 = std::min(j0 + block_size, curr_size);
-				for (int k0 = 0; k0 < block_size; k0 += kbs) {
-					int k1 = std::min(k0 + kbs, block_size);
-					for (int i = i0; i < i1; ++i) {
-						Type* A22_irow = m_arr_p + i * start_size;
-						Type* L_ix = m_arr_p + i * start_size;
-						// попытался сделать так, впятеро медленнее получилось (не преувеличение)
-
-						/*for (int j = j0; j < j1; ++j) {
-							Type* U_xj = m_arr_p + j;
-							Type sum = 0.0;
-						#pragma omp simd reduction(+:sum)
-							for (int k = 0; k < block_size; ++k) {
-								sum += L_ix[k] * (*(U_xj + k * start_size));
-							}
-							A22_irow[j] -= sum;
-						}	*/
-
-						// #pragma omp simd // векторизация здесь почему то ломает вообще всё
-						for (int k = k0; k < k1; ++k) {
-							Type L_ik = *(L_ix + k);
-							Type* U_kx = m_arr_p + k * start_size;
-						#pragma omp simd
-							for (int j = j0; j < j1; ++j) {
-								A22_irow[j] -= L_ik * U_kx[j];
-							}
-						}
-					}
-				}
-			}
-		}
-#pragma omp single 
-		curr_size -= block_size;
-	}
-}
-
-/// Эти заметки я пишу перед занятием, чтобы не забыть некоторые важные вещи
-///
-/// Пояснение:
-/// У меня в тетради есть расписанная маленько эта операция с L22 * U22
-/// Я не придумал, как и зачем это блочить по К (Upd: придумал в лоб, и почему-то это сработало)
-/// Там я еще немного подумал по поводу цикла, который впятеро медленнее работает, показать надо
-/// 
-/// upd: скорость в 14000ms и меньше, вероятно, получалась из-за множества тестов подряд,
-/// т.е. когда я запускал тест с матрицами 10000х10000 5 раз подряд, хотя каждый раз 
-/// матрица создается по новой.
-/// 
-/// Прогонял через VTune до и после изменений, время простоем сократилось раза в 4, 
-/// А ВРЕМЯ ВЫЧИСЛЕНИЙ НЕМНОГО УВЕЛИЧИЛОСЬ. Я искренне не понимаю, что не так.
-/// 
