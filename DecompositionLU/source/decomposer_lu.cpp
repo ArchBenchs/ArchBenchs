@@ -16,21 +16,45 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 		int lim = (flag) ? curr_size : block_size;
 
 		// L11 & U11
-		for (size_t k = 0; k < lim - 1; k++) {
+		for (size_t k = 0; k < lim - 1; k++) { 
+			// выбор очередного элемента с главной диагонали (далее - опорный)
 			Type* A_xk = m_arr_p + k;
 			Type* U_kx = m_arr_p + k * start_size;
-			Type A_kk = m_arr_p[k * start_size + k];
+			Type A_kk = U_kx[k];
 		#pragma omp parallel for
 			for (int i = k + 1; i < lim; i++) {
 				Type* A_ik_p = A_xk + i * start_size;
 				Type* A_ix = m_arr_p + i * start_size;
 				(*A_ik_p) /= A_kk; 
+				// A(i, k) /= A(k, k) - обработка столбца под опорным элементом (1st step),
+				// после этого A(i, k) == L(i, k)
 			#pragma omp simd
 				for (int j = k + 1; j < lim; j++) {
 					A_ix[j] -= (*A_ik_p) * U_kx[j]; 
+					// A(i, j) -= L(i, k) * U(k, j); 
+					// (Для k-той строки на данный момент: A(k, j) == U(k, j) )
+					// обработка подматрицы от k+1-ой строки и k+1 столбца (2nd step)
 				}
 			}
 		}
+/// Визуализация (измененные за каждый шаг элементы отмечены значком ^ ; 
+/// элементы, которые далее будут изменяться, заключены в скобки):
+/// 
+///			 /  1   0  ...  0  \   / U00 U01 ... U0n \   / U00          U01                      ...  U0n                                 \
+/// A = LU = | L10  1  ...  0  |   |  0  U11 ... U1n |   | (L10 * U00)  (L10 * U01 + U11)        ...  (L10 * U0n + U1n)                   |
+///			 | ... ... ... ... | X | ... ... ... ... | = | ...          ...                      ...  ...                                 | ===>
+///			 \ Ln0 Ln1 ...  1  /   \  0   0   0  Unn /   \ (Ln0 * U00)  (Ln0 * U01 + Ln1 * U11)  ...  (Ln0 * U0n + Ln1 * U1n + ... + Unn) /
+/// 
+///					 / U00     U01                      ...  U0n                                 \
+/// k = 0, 1st step  | L10^    (L10 * U01 + U11)        ...  (L10 * U0n + U1n)                   |
+/// ===============> | ...     ...                      ...  ...                                 | ===>
+///					 \ Ln0^    (Ln0 * U01 + Ln1 * U11)  ...  (Ln0 * U0n + Ln1 * U1n + ... + Unn) /
+///					 
+///					 / U00  U01           ...  U0n                      \
+/// k = 0, 2nd step  | L10  U11^          ...  U1n^                     |
+/// ===============> | ...  ...           ...  ...                      | ===> k++, повторить до lim-1
+///					 \ Ln0  (Ln1 * U11)^  ...  (Ln1 * U1n + ... + Unn)^ /
+/// 
 		if (flag) return;
 #pragma omp parallel
 		{ // комментарии сюда 
@@ -45,7 +69,7 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 							Type* U_xk = m_arr_p + k;
 							Type* L_ik_p = L_ix + k;
 							Type sum = 0.0;
-#pragma omp simd reduction(+:sum)
+						#pragma omp simd reduction(+:sum)
 							for (int j = 0; j < k; ++j) {
 								sum += L_ix[j] * (*(U_xk + j * start_size));
 							}
