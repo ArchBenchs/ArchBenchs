@@ -176,11 +176,11 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m)
 
 // ----------------------------------------< comparison >----------------------------------------------------------
 
-// сравнивает значения, используя абсолютную погрешность
+// compare values with using absolute error
 inline bool compare_eps(const Type& arg1, const Type& arg2, const Type& eps) {
 	return fabs(arg1 - arg2) <= eps;
 }
-// сравнивает значения, используя относительную погрешность
+// compare values with using relative error
 inline bool compare_rel(const Type& arg1, const Type& arg2, const Type& eps) {
 	Type abs1 = fabs(arg1), abs2 = fabs(arg2);
 	Type max = (abs1 > abs2) ? abs1 : abs2;

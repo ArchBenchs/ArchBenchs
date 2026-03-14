@@ -79,7 +79,7 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 				}
 
 			}
-		#pragma omp for // U12
+#pragma omp for // U12
 			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
 				for (int k0 = 0; k0 < block_size; k0 += kbs) {
 					int j1 = std::min(j0 + block_size, curr_size);
