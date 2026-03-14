@@ -22,6 +22,8 @@ using WorkabilityTestPtr = bool (*)();
 
 class TestSystem {
 private:
+	// флаг, определ€ющий, производитс€ ли проверка результата в test_time (по умолчанию true)
+	static bool do_accuracy_check;
 	// вектор тестов работоспособности
 	static std::vector<WorkabilityTestPtr> workability_tests;
 
@@ -59,6 +61,8 @@ private:
 public:
 	// функци€, добавл€юща€ все тесты работоспособности в workability_tests
 	static void enable_workability_tests();
+	// отключение проверки результата в test_time
+	static void disable_accuracy_check();
 
 	static void run_all_tests(size_t n = 5000, size_t count = 1, std::string filename = "");
 };

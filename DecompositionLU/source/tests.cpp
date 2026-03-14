@@ -69,6 +69,8 @@ bool TestSystem::test4() {
 #define TP steady_clock::time_point 
 #define NOW steady_clock::now()
 
+bool TestSystem::do_accuracy_check = true;
+
 ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	ReturnedResults results;
 	TP start_init = NOW;
@@ -83,26 +85,28 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 
 	results.TotalTime = duration_cast<milliseconds>(NOW - start_init);
 
-	SquareMatrix L(n), U(n);
-	DecomposerLU::decompose_LU(LU, L, U);
-	SquareMatrix Res = L * U;
-	double infinite_cond_A = (Res - A).get_infinite_norm() /
-		(A.get_infinite_norm() * SquareMatrix::mashine_eps);
+	if (do_accuracy_check) {
+		SquareMatrix L(n), U(n);
+		DecomposerLU::decompose_LU(LU, L, U);
+		SquareMatrix Res = L * U;
+		double infinite_cond_A = (Res - A).get_infinite_norm() /
+			(A.get_infinite_norm() * SquareMatrix::mashine_eps);
 
-	results.is_correct = (A == Res);
+		results.is_correct = (A == Res);
 
-	p_endl();
-	print(iter + 1); print(") ");
-	analyze_cond(infinite_cond_A);
-	print(" Test result: ");
-	bool consol = (out == &cout);
-	if (results.is_correct) { if (consol) *out << "\033[32m"; print("true"); }
-	else { if (consol) *out << "\033[31m"; print("false"); }
-	if (consol) *out << "\033[0m";
-	print(". LU Time: "); 
-	print(results.LUTime.count());
-	p_endl();
-
+		p_endl();
+		print(iter + 1); print(") ");
+		analyze_cond(infinite_cond_A);
+		print(" Test result: ");
+		bool consol = (out == &cout);
+		if (results.is_correct) { if (consol) *out << "\033[32m"; print("true"); }
+		else { if (consol) *out << "\033[31m"; print("false"); }
+		if (consol) *out << "\033[0m";
+		print(". LU Time: ");
+		print(results.LUTime.count());
+		p_endl();
+	}
+	else { results.is_correct = false; }
 	return results;
 }
 
@@ -118,8 +122,10 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 		time_init = (time_init > res.InitTime) ? res.InitTime : time_init;
 		time_LU = (time_LU > res.LUTime) ? res.LUTime : time_LU;
 		total_time = (total_time > res.TotalTime) ? res.TotalTime : total_time;
-		if (res.is_correct) { ++cc; }
-		else { ++incc; }
+		if (do_accuracy_check) {
+			if (res.is_correct) { ++cc; }
+			else { ++incc; }
+		}
 	}
 	print("\nMinimum time for init random matrix: ");
 	print(time_init.count());
@@ -130,9 +136,11 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print(" ms\nMinimum total time: ");
 	print(total_time.count());
 
-	print(" ms\n\nTotal test result: "); print(cc / (cc + incc) * 100);
-	print("%\nCorrect count: "); print(cc);
-	print("\nIncorrect count: "); print(incc);
+	if (do_accuracy_check) {
+		print(" ms\n\nTotal test result: "); print(cc / (cc + incc) * 100);
+		print("%\nCorrect count: "); print(cc);
+		print("\nIncorrect count: "); print(incc);
+	}
 	print("\n-------------------------------------------------------------------------------------------------\n");
 }
 
@@ -165,6 +173,8 @@ void TestSystem::enable_workability_tests() {
 	workability_tests.push_back(TestSystem::test4);
 }
 
+void TestSystem::disable_accuracy_check() { do_accuracy_check = false; }
+
 void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 	if (filename != "") {
 		file_out.open(filename);
@@ -174,7 +184,7 @@ void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 		}
 		else { out = &file_out; }
 	}
-	print("TestSystem:\n");
+	print("\nTestSystem:");
 	bool last_res;
 	for (auto TestPtr : workability_tests) {
 		last_res = (*TestPtr)();
