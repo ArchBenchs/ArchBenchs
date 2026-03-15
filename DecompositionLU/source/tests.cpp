@@ -184,7 +184,7 @@ void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 		}
 		else { out = &file_out; }
 	}
-	print("\nTestSystem:");
+	print("\nTestSystem:\n");
 	bool last_res;
 	for (auto TestPtr : workability_tests) {
 		last_res = (*TestPtr)();
