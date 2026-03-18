@@ -1,23 +1,18 @@
 TestSystem:
 
+
 ------------------------------------------- Test time -------------------------------------------
-Testing with n = 1000, 5 times:
+Testing with n = 10000, 2 times:
 
-1) Infinite cond(A): 8.8534; Matrix A is good-conditioned. Test result: true. Time: 68
+1) Infinite cond(A): 45.9864; Matrix is good-conditioned. Test result: true. LU Time: 12828
 
-2) Infinite cond(A): 7.09123; Matrix A is good-conditioned. Test result: true. Time: 61
+2) Infinite cond(A): 44.8793; Matrix is good-conditioned. Test result: true. LU Time: 12596
 
-3) Infinite cond(A): 7.77288; Matrix A is good-conditioned. Test result: true. Time: 56
-
-4) Infinite cond(A): 8.98079; Matrix A is good-conditioned. Test result: true. Time: 60
-
-5) Infinite cond(A): 8.5922; Matrix A is good-conditioned. Test result: true. Time: 61
-
-Minimum time for init random matrix: 15 ms
-Minimum time for LU decomposition: 56 ms
-Minimum total time: 74 ms
+Minimum time for init random matrix: 825 ms
+Minimum time for LU decomposition: 12596 ms
+Minimum total time: 13653 ms
 
 Total test result: 100%
-Correct count: 5
+Correct count: 2
 Incorrect count: 0
 -------------------------------------------------------------------------------------------------
