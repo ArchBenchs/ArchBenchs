@@ -81,28 +81,28 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 #pragma omp parallel
 		{
 #pragma omp for // L21
-			for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
-				for (int k0 = 0; k0 < block_size; k0 += kbs) {
-					int i1 = std::min(i0 + block_size, curr_size);
-					int k1 = std::min(k0 + kbs, block_size);
-					for (int i = i0; i < i1; ++i) {
-						// выбор строки матрицы А21
-						Type* L_ix = m_arr_p + i * start_size;
-						for (int k = k0; k < k1; ++k) {
-							// выбор столбца на этой строке
-							Type* U_xk = m_arr_p + k;
-							Type* L_ik_p = L_ix + k;
-							Type sum = 0.0;
-						#pragma omp simd reduction(+:sum)
-							for (int j = 0; j < k; ++j) {
-								sum += L_ix[j] * (*(U_xk + j * start_size));
+		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
+			for (int k0 = 0; k0 < block_size; k0 += kbs) {
+				int i1 = std::min(i0 + block_size, curr_size);
+						int k1 = std::min(k0 + kbs, block_size);
+						for (int i = i0; i < i1; ++i) {
+							// выбор строки матрицы А21
+							Type* L_ix = m_arr_p + i * start_size;
+							for (int k = k0; k < k1; ++k) {
+								// выбор столбца на этой строке
+								Type* U_xk = m_arr_p + k;
+								Type* L_ik_p = L_ix + k;
+								Type sum = 0.0;
+							#pragma omp simd reduction(+:sum)
+								for (int j = 0; j < k; ++j) {
+									sum += L_ix[j] * (*(U_xk + j * start_size));
+								}
+								*L_ik_p = (*L_ik_p - sum) / (*(U_xk + k * start_size));
+								// A(i, k) -= sum( L(i,j) * U(j, k) | j = 0,...,k )
+								// A(i, k) /= U(k, k)
 							}
-							*L_ik_p = (*L_ik_p - sum) / (*(U_xk + k * start_size));
-							// A(i, k) -= sum( L(i,j) * U(j, k) | j = 0,...,k )
-							// A(i, k) /= U(k, k)
 						}
 					}
-				}
 /// Циклы по i и k поделены на блоки, следовательно, один блок содержит 
 /// в себе подматрицу из b строк и m столбцов (обозначения выше).
 /// Визуализация (обозначения аналогичны, для простоты рассмотрена не блочная обработка):
@@ -201,7 +201,7 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 ///
 /// ===> k++ и так далее.
 /// После этого этапа A12 = U12.
-		}
+			}
 		// L22 * U22 = A22 - L21 * U12
 #pragma omp parallel for // конкретно этот блок замерить, че сколько занимает
 		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
