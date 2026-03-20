@@ -32,6 +32,22 @@ void aligned_free(void* ptr) {
 
 // ----------------------------------------< constructors & destructor >-------------------------------------------
 
+SquareMatrix::SquareMatrix(size_t s, bool init_diag_dominant) {
+	size = s; 
+	size_t sz_sqr = size * size;
+	size_t bytes = sz_sqr * TypeSize;
+
+	array = (Type*)aligned_malloc(bytes, BLOCK_SIZE);
+	if (!array) throw bad_alloc();
+
+	if (init_diag_dominant) {
+		Type val = static_cast<Type>(sz_sqr);
+		std::memset(array, 1, bytes);
+		for (size_t i = 0; i < size; ++i) {
+			array[i * size + i] = val;
+		}
+	} else { std::memset(array, 0, bytes); }
+}
 SquareMatrix::SquareMatrix(size_t s, Type* in_arr) {
 	size = s;
 	size_t bytes = size * size * TypeSize;
@@ -40,7 +56,7 @@ SquareMatrix::SquareMatrix(size_t s, Type* in_arr) {
 	if (!array) throw bad_alloc();
 
 	if (in_arr != nullptr) { std::memcpy(array, in_arr, bytes); }
-	else { std::memset(array, 0, bytes); }
+	else throw exception("Initial array is nullptr!");
 }
 SquareMatrix::SquareMatrix(size_t s, Type min, Type max) {
 	size = s;
@@ -63,6 +79,7 @@ SquareMatrix::SquareMatrix(size_t s, Type min, Type max) {
 		str[i] = sum + positive_generator(gen);
 	}
 }
+
 SquareMatrix::~SquareMatrix() { aligned_free(array); }
 
 // ----------------------------------------------------------------------------------------------------------------

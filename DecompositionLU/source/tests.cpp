@@ -75,7 +75,7 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	ReturnedResults results;
 	TP start_init = NOW;
 
-	SquareMatrix A(n, -1e6, 1e6), LU(A);
+	SquareMatrix A(n, true), LU(A);
 	
 	results.InitTime = duration_cast<milliseconds>(NOW - start_init);
 

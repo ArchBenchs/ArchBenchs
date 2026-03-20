@@ -29,7 +29,10 @@ public:
 
 	//  constructors & destructor 
 
-	SquareMatrix(size_t s, Type* in_arr = nullptr);
+	// if idd == true, inits diagonally dominant matrix, else - fills with 0
+	SquareMatrix(size_t s, bool init_diag_dominant = 0);
+	// fills matrix with in_arr values
+	SquareMatrix(size_t s, Type* in_arr);
 	// fills created matrix with randomly generated values in range [min, max] 
 	SquareMatrix(size_t s, Type min, Type max);
 	~SquareMatrix();
