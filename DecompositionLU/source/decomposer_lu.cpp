@@ -9,12 +9,12 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 	int iter_max = start_size * start_size;
 	int iter_step = block_size * start_size + block_size;
 
-/// Для дальнейших объяснений представим поступившую  на вход матрицу А в следующем виде 
-/// (пусть размер матрицы = n, размер большого блока = b, размер малого = m):
+/// For further explanation, let's represent the input matrix A as follows 
+/// (let matrix size = n, large block size = b, small block size = m):
 /// 
-///		/	  |             \            /  A(0, 0)  ...   A(0, b) \		 / A(0, b+1) ... A(0, n) \.			 
-///		| A11 |     A12     |, где A11 = |	  ...	 ...	...	   |   A12 = |	  ...	 ...   ...	 |
-/// A = |-----+-------------|			 \  A(b, 0)  ...  A(b, b)  /		 \ A(b, b+1) ... A(b, n) /
+///		/	  |             \              /  A(0, 0)  ...   A(0, b) \		   / A(0, b+1) ... A(0, n) \.			 
+///		| A11 |     A12     |, where A11 = |	...    ...	   ...   |   A12 = |	...	   ...   ...   |
+/// A = |-----+-------------|			   \  A(b, 0)  ...  A(b, b)  /		   \ A(b, b+1) ... A(b, n) /
 ///		|     |				|
 ///		|	  |				|            / A(b+1, 0) ... A(b+1, b) \		 / A(b+1, b+1) ... A(b+1, n) \.			 			 
 ///		| A21 |		A22		|	   A21 = |	  ...	 ...	...	   |   A22 = |	  ...	   ...   ...	 |	   
@@ -30,8 +30,8 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 
 		// L11 & U11
 		int klim = lim - 1;
-		for (size_t k = 0; k < klim; ++k) { 
-			// выбор очередного элемента с главной диагонали (далее - опорный)
+		for (size_t k = 0; k < klim; ++k) {
+			// select the next element on the main diagonal (hereinafter - pivot)
 			Type* A_xk = m_arr_p + k;
 			Type* U_kx = m_arr_p + k * start_size;
 			Type A_kk = U_kx[k];
@@ -39,20 +39,20 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 			for (int i = k + 1; i < lim; ++i) {
 				Type* A_ik_p = A_xk + i * start_size;
 				Type* A_ix = m_arr_p + i * start_size;
-				(*A_ik_p) /= A_kk; 
-				// A(i, k) /= A(k, k) - обработка столбца под опорным элементом (1st step),
-				// после этого A(i, k) == L(i, k)
+				(*A_ik_p) /= A_kk;
+				// A(i, k) /= A(k, k) - processing the column below the pivot element (1st step),
+				// after this A(i, k) == L(i, k)
 			#pragma omp simd
 				for (int j = k + 1; j < lim; ++j) {
-					A_ix[j] -= (*A_ik_p) * U_kx[j]; 
+					A_ix[j] -= (*A_ik_p) * U_kx[j];
 					// A(i, j) -= L(i, k) * U(k, j); 
-					// (Для k-той строки на данный момент: A(k, j) == U(k, j) )
-					// обработка подматрицы от k+1-ой строки и k+1 столбца (2nd step)
+					// (For the k-th row at this moment: A(k, j) == U(k, j))
+					// processing the submatrix from row k+1 and column k+1 (2nd step)
 				}
 			}
 		}
-/// Визуализация (измененные за каждый шаг элементы отмечены значком ^ ; 
-/// элементы, которые далее будут изменяться, заключены в скобки):
+/// Visualization (elements changed at each step are marked with ^; 
+/// elements that will be changed later are enclosed in parentheses):
 /// 
 ///					  /  1   0  ...  0  \   / u00 u01 ... u0b \   / u00          u01                      ...  u0b                                 \.
 /// A11 = L11 * U11 = | l10  1  ...  0  |   |  0  u11 ... u1b |   | (l10 * u00)  (l10 * u01 + u11)        ...  (l10 * u0b + u1b)                   |
@@ -66,10 +66,10 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 ///					 
 ///					 / u00  u01           ...  u0b                      \.
 /// k = 0, 2nd step  | l10  u11^          ...  u1b^                     |
-/// ===============> | ...  ...           ...  ...                      | ===> k++, повторить до lim-1
+/// ===============> | ...  ...           ...  ...                      | ===> k++, repeat while k < lim-1
 ///					 \ lb0  (lb1 * u11)^  ...  (lb1 * u1b + ... + ubb)^ /
 /// 
-/// После этого этапа:
+/// After this stage:
 /// 
 ///		  / u00 u01 u02 ... u0b \    /\		   \.
 ///		  |	l10 u11 u12 ... u1b |   |   \  U11  |
@@ -80,32 +80,32 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 		if (flag) return;
 #pragma omp parallel
 		{
-#pragma omp for // L21
-		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
-			for (int k0 = 0; k0 < block_size; k0 += kbs) {
-				int i1 = std::min(i0 + block_size, curr_size);
-						int k1 = std::min(k0 + kbs, block_size);
-						for (int i = i0; i < i1; ++i) {
-							// выбор строки матрицы А21
-							Type* L_ix = m_arr_p + i * start_size;
-							for (int k = k0; k < k1; ++k) {
-								// выбор столбца на этой строке
-								Type* U_xk = m_arr_p + k;
-								Type* L_ik_p = L_ix + k;
-								Type sum = 0.0;
-							#pragma omp simd reduction(+:sum)
-								for (int j = 0; j < k; ++j) {
-									sum += L_ix[j] * (*(U_xk + j * start_size));
-								}
-								*L_ik_p = (*L_ik_p - sum) / (*(U_xk + k * start_size));
-								// A(i, k) -= sum( L(i,j) * U(j, k) | j = 0,...,k )
-								// A(i, k) /= U(k, k)
+		#pragma omp for // L21
+			for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
+				for (int k0 = 0; k0 < block_size; k0 += kbs) {
+					int i1 = std::min(i0 + block_size, curr_size);
+					int k1 = std::min(k0 + kbs, block_size);
+					for (int i = i0; i < i1; ++i) {
+						// select row of matrix A21
+						Type* L_ix = m_arr_p + i * start_size;
+						for (int k = k0; k < k1; ++k) {
+							// select column in this row
+							Type* U_xk = m_arr_p + k;
+							Type* L_ik_p = L_ix + k;
+							Type sum = 0.0;
+						#pragma omp simd reduction(+:sum)
+							for (int j = 0; j < k; ++j) {
+								sum += L_ix[j] * (*(U_xk + j * start_size));
 							}
+							*L_ik_p = (*L_ik_p - sum) / (*(U_xk + k * start_size));
+							// A(i, k) -= sum( L(i,j) * U(j, k) | j = 0,...,k )
+							// A(i, k) /= U(k, k)
 						}
 					}
-/// Циклы по i и k поделены на блоки, следовательно, один блок содержит 
-/// в себе подматрицу из b строк и m столбцов (обозначения выше).
-/// Визуализация (обозначения аналогичны, для простоты рассмотрена не блочная обработка):
+				}
+/// Loops over i and k are divided into blocks, so one block contains 
+/// a submatrix of b rows and m columns (notations above).
+/// Visualization (notations are similar, non-block processing is considered for simplicity):
 /// 
 ///					  / l(b+1, 0) ... l(b+1, b) \   / u00 u01 ... u0b \.   
 /// А21 = L21 * U11 = |	  ...	  ...	...	    | X |  0  u11 ... u1b | = 
@@ -127,22 +127,22 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 /// ==============> |		  ...						  ...					...						...						| ===>
 ///				    \  (l(n, 0) * u00)     (l(n, 0) * u01 + l(n, 1) * u11)		...    (l(n, 0) * u0b + ... + l(n, b) * ubb)	/
 /// 
-/// ===> i++, повторять, пока i < n.
+/// ===> i++, repeat while i < n.
 /// 
-/// После этого этапа A21 = L21.
+/// After this stage A21 = L21.
 			}
-#pragma omp for // U12
+		#pragma omp for // U12
 			for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
 				for (int k0 = 0; k0 < block_size; k0 += kbs) {
 					int i1 = std::min(i0 + block_size, curr_size);
 					int k1 = std::min(k0 + kbs, block_size);
 					for (int k = k0; k < k1; ++k) {
-						// Выбор строки матрицы A, для дальнейшего выбора элемента 
-						// матрицы L11 и обрабатываемого элемента матрицы А12
+						// Select row of matrix A, for further selection of element 
+						// of matrix L11 and the processed element of matrix A12
 						Type* U_kx = m_arr_p + k * start_size;
 						for (int j = 0; j < k; ++j) {
-							// Выбор столбца, по которому берется элемент матрицы L11, и строки,
-							// по которой берется его множитель из U12 (обработанной части А12)
+							// Select the column from which the element of matrix L11 is taken, and the row,
+							// from which its multiplier from U12 (processed part of A12) is taken
 							Type* U_jx = m_arr_p + j * start_size;
 							Type L_kj = U_kx[j];
 						#pragma omp simd
@@ -154,9 +154,9 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 					}
 				}
 			}
-/// Циклы по i и k поделены на блоки, следовательно 1 блок содержит 
-/// подматрицу из m строк и b столбцов (считал по элементу A(k, i) ).
-/// Визуализация (аналогично; нач. условие: k = 1 (при k = 0 ничего не происходит) ):
+/// Loops over i and k are divided into blocks, so 1 block contains 
+/// a submatrix of m rows and b columns (counting by element A(k, i)).
+/// Visualization (similar; initial condition: k = 1 (nothing happens at k = 0)):
 /// 
 ///					  /  1   0  ...  0  \   / u(0, b+1) ... u(0, n) \.      
 /// А12 = L11 * U12 = | l10  1  ...  0  | X |	 ...	...	  ...   | = 
@@ -199,11 +199,11 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 ///				    |  ...													 ...												   ...	 ...											| 
 ///				    \ (u(0, b+1) * lb0 + u(1, b+1) * lb1 + ... + u(b, b+1))	(u(0, b+2) * lb0 + u(1, b+2) * lb1 + ... + u(b, b+2))  ...  (u(0, n) * lb0 + u(1, n) * lb1 + ... + u(b, n)) /
 ///
-/// ===> k++ и так далее.
-/// После этого этапа A12 = U12.
-			}
+/// ===> k++ and so on.
+/// After this stage A12 = U12.
+		}
 		// L22 * U22 = A22 - L21 * U12
-#pragma omp parallel for // конкретно этот блок замерить, че сколько занимает
+	#pragma omp parallel for // measure this block specifically
 		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
 			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
 				int i1 = std::min(i0 + block_size, curr_size);
@@ -211,34 +211,34 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 				for (int k0 = 0; k0 < block_size; k0 += kbs) {
 					int k1 = std::min(k0 + kbs, block_size);
 					for (int i = i0; i < i1; ++i) {
-						// Выбор строки матрицы A, для дальнейшего выбора элемента 
-						// матрицы L21 и обрабатываемого элемента матрицы А22
+						// Select row of matrix A, for further selection of element 
+						// of matrix L21 and the processed element of matrix A22
 						Type* A22_ix = m_arr_p + i * start_size;
 						for (int k = k0; k < k1; ++k) {
-							// Выбор столбца, по которому берется элемент матрицы L21, и строки,
-							// по которой берется его множитель из U12
+							// Select the column from which the element of matrix L21 is taken, and the row,
+							// from which its multiplier from U12 is taken
 							Type L_ik = *(A22_ix + k);
 							Type* U_kx = m_arr_p + k * start_size;
 						#pragma omp simd
 							for (int j = j0; j < j1; ++j) {
 								// A(i, j) -= L(i, k) * U(k, j)
-								A22_ix[j] -= L_ik * U_kx[j]; 
+								A22_ix[j] -= L_ik * U_kx[j];
 							}
 						}
 					}
 				}
 			}
 		}
-/// Визуализация не требуется по 2-м причинам:
-///		- Она практически идентична визуализации U12, за исключением того, 
-///		  что здесь цикл по j блочный, а не до k
-///		- Тривиальная реализация blast (вроде бы)
-#pragma omp single 
+/// Visualization is not required for 2 reasons:
+///		- It is almost identical to the U12 visualization, except that 
+///		  the loop over j here is blocked, not up to k
+///		- Trivial blas implementation (as it seems)
+	#pragma omp single 
 		curr_size -= block_size;
 	}
 }
 
-// коллапс, когда верхний цикл маленький и хочется его распараллелить, объединив со вторым
+// collapse, when the outer loop is small and you want to parallelize it by combining with the second one
 
 void DecomposerLU::get_LU(SquareMatrix& matrix_pointer) {
 	Type*& m = matrix_pointer.get_array();

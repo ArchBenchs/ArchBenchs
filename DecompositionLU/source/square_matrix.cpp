@@ -33,7 +33,7 @@ void aligned_free(void* ptr) {
 // ----------------------------------------< constructors & destructor >-------------------------------------------
 
 SquareMatrix::SquareMatrix(size_t s, bool init_diag_dominant) {
-	size = s; 
+	size = s;
 	size_t sz_sqr = size * size;
 	size_t bytes = sz_sqr * TypeSize;
 
@@ -46,7 +46,8 @@ SquareMatrix::SquareMatrix(size_t s, bool init_diag_dominant) {
 		for (size_t i = 0; i < size; ++i) {
 			array[i * size + i] = val;
 		}
-	} else { std::memset(array, 0, bytes); }
+	}
+	else { std::memset(array, 0, bytes); }
 }
 SquareMatrix::SquareMatrix(size_t s, Type* in_arr) {
 	size = s;
@@ -193,11 +194,11 @@ SquareMatrix SquareMatrix::operator*(const SquareMatrix& m)
 
 // ----------------------------------------< comparison >----------------------------------------------------------
 
-// compare values with using absolute error
+// compare values using absolute error
 inline bool compare_eps(const Type& arg1, const Type& arg2, const Type& eps) {
 	return fabs(arg1 - arg2) <= eps;
 }
-// compare values with using relative error
+// compare values using relative error
 inline bool compare_rel(const Type& arg1, const Type& arg2, const Type& eps) {
 	Type abs1 = fabs(arg1), abs2 = fabs(arg2);
 	Type max = (abs1 > abs2) ? abs1 : abs2;
@@ -288,4 +289,3 @@ ostream& operator<<(ostream& ostr, const SquareMatrix& m) noexcept {
 }
 
 // ----------------------------------------------------------------------------------------------------------------
-

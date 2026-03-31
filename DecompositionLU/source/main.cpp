@@ -22,20 +22,24 @@ int main(int argc, char* argv[])
 		else if (strcmp(argv[i], "--out") == 0 && i + 1 < argc) {
 			fname = argv[i + 1]; ++i;
 		}
-		else if (strcmp(argv[i], "--workability_tests") == 0) {
+		else if (strcmp(argv[i], "--wt") == 0 ||
+			strcmp(argv[i], "--workability_tests") == 0) 
+		{
 			TestSystem::enable_workability_tests();
 		}
-		else if (strcmp(argv[i], "--disable_accuracy_check") == 0) {
+		else if (strcmp(argv[i], "--dac") == 0 ||
+			strcmp(argv[i], "--disable_accuracy_check") == 0) 
+		{
 			TestSystem::disable_accuracy_check();
 		}
 		else if (strcmp(argv[i], "--help") == 0) {
 			cout << "Options:\n";
-			cout << "  --help                      Show help.\n";
-			cout << "  --size [VALUE]              Set size of matrix used in time tests equal to VALUE.\n";
-			cout << "  --count [VALUE]             Program do the time test VALUE times (new matrix every time).\n";
-			cout << "  --out [PATH]                All the program output will be write in file [PATH] (.txt file).\n";
-			cout << "  --workability_tests         Enables workability tests.\n";
-			cout << "  --disable_accuracy_check    Disables result checking in time-measuring tests.\n";
+			cout << "  --help							   Show help.\n";
+			cout << "  --size [VALUE]					   Set size of matrix used in time tests equal to VALUE.\n";
+			cout << "  --count [VALUE]					   Program do the time test VALUE times (new matrix every time).\n";
+			cout << "  --out [PATH]						   All the program output will be write in file [PATH] (.txt file).\n";
+			cout << "  --workability_tests (--wt)		   Enables workability tests.\n";
+			cout << "  --disable_accuracy_check (--dac)    Disables result checking in time-measuring tests.\n";
 			return 0;
 		}
 	}
