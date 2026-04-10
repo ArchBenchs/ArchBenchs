@@ -70,12 +70,16 @@ bool TestSystem::test4() {
 #define NOW steady_clock::now()
 
 bool TestSystem::do_accuracy_check = true;
+bool TestSystem::random_initialization = false;
 
 ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	ReturnedResults results;
 	TP start_init = NOW;
 
-	SquareMatrix A(n, true), LU(A);
+	SquareMatrix A(n);
+	if (random_initialization) { A = SquareMatrix(n, 1e-6, 1e6); }
+	else { A = SquareMatrix(n, true); }
+	SquareMatrix LU(A);
 
 	results.InitTime = duration_cast<milliseconds>(NOW - start_init);
 
@@ -174,6 +178,8 @@ void TestSystem::enable_workability_tests() {
 }
 
 void TestSystem::disable_accuracy_check() { do_accuracy_check = false; }
+
+void TestSystem::enable_random_initialization() { random_initialization = true; }
 
 void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 	if (filename != "") {

@@ -57,7 +57,7 @@ SquareMatrix::SquareMatrix(size_t s, Type* in_arr) {
 	if (!array) throw bad_alloc();
 
 	if (in_arr != nullptr) { std::memcpy(array, in_arr, bytes); }
-	else throw exception("Initial array is nullptr!");
+	else throw std::invalid_argument("Initial array is nullptr!");
 }
 SquareMatrix::SquareMatrix(size_t s, Type min, Type max) {
 	size = s;

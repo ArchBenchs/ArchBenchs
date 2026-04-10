@@ -32,6 +32,11 @@ int main(int argc, char* argv[])
 		{
 			TestSystem::disable_accuracy_check();
 		}
+		else if (strcmp(argv[i], "--ri") == 0 ||
+			strcmp(argv[i], "--random_initialization")) 
+		{
+			TestSystem::enable_random_initialization();
+		}
 		else if (strcmp(argv[i], "--help") == 0) {
 			cout << "Options:\n";
 			cout << "  --help							   Show help.\n";
@@ -40,6 +45,7 @@ int main(int argc, char* argv[])
 			cout << "  --out [PATH]						   All the program output will be write in file [PATH] (.txt file).\n";
 			cout << "  --workability_tests (--wt)		   Enables workability tests.\n";
 			cout << "  --disable_accuracy_check (--dac)    Disables result checking in time-measuring tests.\n";
+			cout << "  --random_initialization (--ri)      Enables random matrix initialization (in range [1e-6; 1e6]).\n";
 			return 0;
 		}
 	}
