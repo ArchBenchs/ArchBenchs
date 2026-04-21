@@ -66,8 +66,12 @@ bool TestSystem::test4() {
 
 // ----------------------------------------< time tests >----------------------------------------------------------
 
+#ifndef TP
 #define TP steady_clock::time_point 
+#endif
+#ifndef NOW
 #define NOW steady_clock::now()
+#endif
 
 bool TestSystem::do_accuracy_check = true;
 bool TestSystem::random_initialization = false;

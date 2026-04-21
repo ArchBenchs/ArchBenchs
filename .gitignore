@@ -41,3 +41,5 @@
 *.dwo
 /DecompositionLU/LU_dec_project_path.txt
 /DecompositionLU/build/
+/DecompositionLU/toolchains/intel_oneApi.cmake
+/DecompositionLU/toolchains/intel_oneApi.cmake

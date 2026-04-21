@@ -1,13 +1,32 @@
 #include "decomposer_lu.h"
 
-void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) {
+#ifdef PRINT_BLOCK_TIMES
+#include <chrono>
+#include <iomanip>
+using namespace std::chrono;
+#ifndef TP
+#define TP steady_clock::time_point 
+#endif
+#ifndef NOW
+#define NOW steady_clock::now()
+#endif
+
+// print block time
+void pbt(const char* mess, long long value) {
+	cout << mess << fixed << setprecision(3) << ((double)value / 1000) << endl;
+}
+
+#endif
+
+void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t start_sz) 
+{
 	const int block_size = BLOCK_SIZE;
 	const int kbs = LESSER_BLOCK_SIZE;
 
 	int curr_size = (int)curr_sz;
-	int start_size = (int)start_sz;
-	int iter_max = start_size * start_size;
-	int iter_step = block_size * start_size + block_size;
+	const int start_size = (int)start_sz;
+	const int iter_max = start_size * start_size;
+	const int iter_step = block_size * start_size + block_size;
 
 /// For further explanation, let's represent the input matrix A as follows 
 /// (let matrix size = n, large block size = b, small block size = m):
@@ -21,15 +40,23 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 ///		|     |				|			 \  A(n, 0)  ...  A(n, b)  /		 \ A(n, b+1)   ... A(n, n)   /			 
 ///		\	  |				/
 ///							
-
+#ifdef PRINT_BLOCK_TIMES
+	long long L11U11_time{ 0 };
+	long long L21_time{ 0 };
+	long long U12_time{ 0 };
+	long long L22U22_time{ 0 };
+#endif
 	for (int iter = 0; iter < iter_max; iter += iter_step) {
 		Type* m_arr_p = matrix_array_p + iter;
 
 		bool flag = curr_size <= block_size;
-		int lim = (flag) ? curr_size : block_size;
+		const int lim = (flag) ? curr_size : block_size;
 
 		// L11 & U11
-		int klim = lim - 1;
+		const int klim = lim - 1;
+	#ifdef PRINT_BLOCK_TIMES 
+		TP start_L11U11 = NOW;
+	#endif
 		for (size_t k = 0; k < klim; ++k) {
 			// select the next element on the main diagonal (hereinafter - pivot)
 			Type* A_xk = m_arr_p + k;
@@ -77,14 +104,28 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 ///		  | ... ... ... ... ... |   | L11   \   |
 ///		  \ lb0 lb1 lb2 ... ubb /    \        \/
 /// 
-		if (flag) return;
-#pragma omp parallel
+	#ifdef PRINT_BLOCK_TIMES
+		L11U11_time += duration_cast<microseconds>(NOW - start_L11U11).count();
+	#endif
+		if (flag) {
+		#ifdef PRINT_BLOCK_TIMES
+			pbt("\nL11U11 time: ", L11U11_time);
+			pbt("L21 time: ", L21_time);
+			pbt("U12 time: ", U12_time);
+			pbt("L22U22 time: ", L22U22_time);
+		#endif
+			return;
+		}
+#pragma omp parallel 
 		{
+		#ifdef PRINT_BLOCK_TIMES
+			TP start_L21 = NOW;
+		#endif
 		#pragma omp for // L21
 			for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
 				for (int k0 = 0; k0 < block_size; k0 += kbs) {
-					int i1 = std::min(i0 + block_size, curr_size);
-					int k1 = std::min(k0 + kbs, block_size);
+					const int i1 = std::min(i0 + block_size, curr_size);
+					const int k1 = std::min(k0 + kbs, block_size);
 					for (int i = i0; i < i1; ++i) {
 						// select row of matrix A21
 						Type* L_ix = m_arr_p + i * start_size;
@@ -103,6 +144,10 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 						}
 					}
 				}
+			}
+		#ifdef PRINT_BLOCK_TIMES
+			L21_time += duration_cast<microseconds>(NOW - start_L21).count();
+		#endif	
 /// Loops over i and k are divided into blocks, so one block contains 
 /// a submatrix of b rows and m columns (notations above).
 /// Visualization (notations are similar, non-block processing is considered for simplicity):
@@ -130,12 +175,14 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 /// ===> i++, repeat while i < n.
 /// 
 /// After this stage A21 = L21.
-			}
+		#ifdef PRINT_BLOCK_TIMES
+			TP start_U12 = NOW;
+		#endif
 		#pragma omp for // U12
 			for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
 				for (int k0 = 0; k0 < block_size; k0 += kbs) {
-					int i1 = std::min(i0 + block_size, curr_size);
-					int k1 = std::min(k0 + kbs, block_size);
+					const int i1 = std::min(i0 + block_size, curr_size);
+					const int k1 = std::min(k0 + kbs, block_size);
 					for (int k = k0; k < k1; ++k) {
 						// Select row of matrix A, for further selection of element 
 						// of matrix L11 and the processed element of matrix A12
@@ -154,6 +201,9 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 					}
 				}
 			}
+		#ifdef PRINT_BLOCK_TIMES
+			U12_time += duration_cast<microseconds>(NOW - start_U12).count();
+		#endif
 /// Loops over i and k are divided into blocks, so 1 block contains 
 /// a submatrix of m rows and b columns (counting by element A(k, i)).
 /// Visualization (similar; initial condition: k = 1 (nothing happens at k = 0)):
@@ -203,13 +253,16 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 /// After this stage A12 = U12.
 		}
 		// L22 * U22 = A22 - L21 * U12
+	#ifdef PRINT_BLOCK_TIMES
+		TP start_L22U22 = NOW;
+	#endif
 	#pragma omp parallel for // measure this block specifically
 		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
 			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
-				int i1 = std::min(i0 + block_size, curr_size);
-				int j1 = std::min(j0 + block_size, curr_size);
+				const int i1 = std::min(i0 + block_size, curr_size);
+				const int j1 = std::min(j0 + block_size, curr_size);
 				for (int k0 = 0; k0 < block_size; k0 += kbs) {
-					int k1 = std::min(k0 + kbs, block_size);
+					const int k1 = std::min(k0 + kbs, block_size);
 					for (int i = i0; i < i1; ++i) {
 						// Select row of matrix A, for further selection of element 
 						// of matrix L21 and the processed element of matrix A22
@@ -229,11 +282,13 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 				}
 			}
 		}
+	#ifdef PRINT_BLOCK_TIMES
+		L22U22_time += duration_cast<microseconds>(NOW - start_L22U22).count();
+	#endif
 /// Visualization is not required for 2 reasons:
 ///		- It is almost identical to the U12 visualization, except that 
 ///		  the loop over j here is blocked, not up to k
 ///		- Trivial blas implementation (as it seems)
-	#pragma omp single 
 		curr_size -= block_size;
 	}
 }
