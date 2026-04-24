@@ -5,17 +5,17 @@ export PATH=/common/home/simonov_m/cmake/bin:$PATH
 
 Этой строкой запускал адвайзор (вроде бы проблем не было)
 
-srun -N 1 advisor --collect=roofline ./Matrix_Project
+srun -N 1 advisor --collect=roofline ./LU_Benchmark
 
 
 Этой строкой замерял время на х86
 
-srun numactl -C 0-19 ./Matrix_Project --size 10000 --disable_accuracy_check
+srun numactl -C 0-19 ./LU_Benchmark --size 10000 --dac
 
 
 Вся сборка сейчас происходит тулчейнами, все добавил, что было:
 
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchains/risk-V_gnu.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchains/risk-V_gcc.cmake
 
 
 На риске запускался как в инструкции, пусть тут тоже лежит:
@@ -27,4 +27,9 @@ module load gcc-riscv64-15.1.0
 
 Строка:
 
-srun -N 1 -p k1 ./Matrix_Project
+srun -N 1 -p k1 ./LU_Benchmark
+
+Замеры на risk-V:
+
+export OMP_NUM_THREADS=8
+srun -N 1 -p k1 numactl -C 0-7 ./LU_Benchmark --size 3000 --dac
