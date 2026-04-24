@@ -13,7 +13,18 @@ int main(int argc, char* argv[])
 	size_t size, count;
 	bool hsz = false, hcnt = false;
 	for (int i = 1; i < argc; ++i) {
-		if (strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
+		if (strcmp(argv[i], "--help") == 0) {
+			cout << "Options:\n";
+			cout << "  --help					Show help.\n";
+			cout << "  --size [VALUE]				Set size of matrix used in time tests equal to VALUE.\n";
+			cout << "  --count [VALUE]				Program do the time test VALUE times (new matrix every time).\n";
+			cout << "  --out [PATH]							All the program output will be write in file [PATH] (.txt file).\n";
+			cout << "  --workability_tests (--wt)			Enables workability tests.\n";
+			cout << "  --disable_accuracy_check (--dac)		Disables result checking in time-measuring tests.\n";
+			cout << "  --random_initialization (--ri)		Enables random matrix initialization (in range [1e-6; 1e6]).\n";
+			return 0;
+		}
+		else if (strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
 			size = stoull(argv[i + 1]); hsz = true; ++i;
 		}
 		else if (strcmp(argv[i], "--count") == 0 && i + 1 < argc){
@@ -36,17 +47,6 @@ int main(int argc, char* argv[])
 			strcmp(argv[i], "--random_initialization")) 
 		{
 			TestSystem::enable_random_initialization();
-		}
-		else if (strcmp(argv[i], "--help") == 0) {
-			cout << "Options:\n";
-			cout << "  --help							   Show help.\n";
-			cout << "  --size [VALUE]					   Set size of matrix used in time tests equal to VALUE.\n";
-			cout << "  --count [VALUE]					   Program do the time test VALUE times (new matrix every time).\n";
-			cout << "  --out [PATH]						   All the program output will be write in file [PATH] (.txt file).\n";
-			cout << "  --workability_tests (--wt)		   Enables workability tests.\n";
-			cout << "  --disable_accuracy_check (--dac)    Disables result checking in time-measuring tests.\n";
-			cout << "  --random_initialization (--ri)      Enables random matrix initialization (in range [1e-6; 1e6]).\n";
-			return 0;
 		}
 	}
 	cout << "Use \"--help\" to see additional options.\n\n";
