@@ -10,7 +10,7 @@ file(GLOB srcs "source/*.cpp")
 add_executable(${project_name} ${srcs} ${hdrs})
 
 if(DEFINED PRINT_BLOCK_TIMES)
-    target_compile_definitions(${project_name} PRIVATE PRINT_BLOCK_TIMES)
+    target_compile_definitions(${project_name} PRIVATE PRINT_BLOCK_TIMES=${PRINT_BLOCK_TIMES})
 endif()
 
 if(DEFINED BLOCK_SIZE)
