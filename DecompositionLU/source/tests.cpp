@@ -76,6 +76,78 @@ bool TestSystem::test4() {
 bool TestSystem::do_accuracy_check = true;
 bool TestSystem::random_initialization = false;
 
+#ifdef DO_REFERENCE_TEST
+ReturnedResults TestSystem::single_test_time(size_t n, size_t iter, SquareMatrix*& A) {
+	ReturnedResults results;
+
+	TP start_init = NOW;
+	if (random_initialization) { A = new SquareMatrix(n, 1e-6, 1e6); }
+	else { A = new SquareMatrix(n, true); }
+	SquareMatrix LU(*A);
+
+	results.InitTime = duration_cast<milliseconds>(NOW - start_init);
+
+	TP start_LU = NOW;
+	DecomposerLU::block_get_LU(LU.get_array(), n, n);
+	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
+
+	results.TotalTime = duration_cast<milliseconds>(NOW - start_init);
+
+	if (do_accuracy_check) {
+		SquareMatrix L(n), U(n);
+		DecomposerLU::decompose_LU(LU, L, U);
+		SquareMatrix Res = L * U;
+		double infinite_cond_A = (Res - *A).get_infinite_norm() /
+			(A->get_infinite_norm() * SquareMatrix::mashine_eps);
+
+		results.is_correct = (*A == Res);
+
+		p_endl();
+		print(iter + 1); print(") ");
+		analyze_cond(infinite_cond_A);
+		print(" Test result: ");
+		bool consol = (out == &cout);
+		if (results.is_correct) { if (consol) *out << "\033[32m"; print("true"); }
+		else { if (consol) *out << "\033[31m"; print("false"); }
+		if (consol) *out << "\033[0m";
+		print(". LU Time: ");
+		print(results.LUTime.count());
+		p_endl();
+	}
+	else { results.is_correct = false; }
+	return results;
+}
+
+#include <Eigen/Dense>      
+#include <Eigen/LU>         
+
+ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const SquareMatrix& sqmtr) {
+	ReturnedResults results;
+	Eigen::MatrixXd A(n, n);
+	for (size_t i = 0; i < n; i++) {
+		for (size_t j = 0; j < n; j++) {
+			A(i, j) = sqmtr(i, j);
+		}
+	}
+
+	TP start_LU = NOW;
+	Eigen::PartialPivLU<Eigen::MatrixXd> lu(A);
+	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
+
+	if (do_accuracy_check) {
+		results.is_correct = true;
+		bool consol = (out == &cout);
+		if (consol) { *out << "\033[33m"; }
+		print("   Reference test "); print(iter + 1);
+		print(". LU Time: ");
+		print(results.LUTime.count());
+		if (consol) { *out << "\033[0m"; }
+		p_endl();
+	}
+	else { results.is_correct = false; }
+	return results;
+}
+#else
 ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	ReturnedResults results;
 	TP start_init = NOW;
@@ -117,37 +189,6 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	else { results.is_correct = false; }
 	return results;
 }
-
-#ifdef DO_REFERENCE_TEST
-#include <Eigen/Dense>      
-#include <Eigen/LU>         
-
-ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const SquareMatrix& sqmtr) {
-	ReturnedResults results;
-	Eigen::MatrixXd A(n, n);
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
-			A(i, j) = sqmtr(i, j);
-		}
-	}
-
-	TP start_LU = NOW;
-	Eigen::PartialPivLU<Eigen::MatrixXd> lu(A);
-	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
-
-	if (do_accuracy_check) {
-		results.is_correct = true;
-		bool consol = (out == &cout);
-		if (consol) { *out << "\033[33m"; }
-		print("   Reference test "); print(iter + 1);
-		print(". LU Time: ");
-		print(results.LUTime.count());
-		if (consol) { *out << "\033[0m"; }
-		p_endl();
-	}
-	else { results.is_correct = false; }
-	return results;
-}
 #endif
 
 void TestSystem::test_time(size_t _n, size_t how_many_times) {
@@ -161,7 +202,12 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print("Testing with n = "); print(_n); print(", ");
 	print(how_many_times); print(" times:"); p_endl();
 	for (size_t iter = 0; iter < how_many_times; ++iter) {
+#ifdef DO_REFERENCE_TEST
+		SquareMatrix* A = new SquareMatrix(n);
+		ReturnedResults res = single_test_time(n, iter, A);
+#else
 		ReturnedResults res = single_test_time(n, iter);
+#endif
 		time_init = (time_init > res.InitTime) ? res.InitTime : time_init;
 		time_LU = (time_LU > res.LUTime) ? res.LUTime : time_LU;
 		total_time = (total_time > res.TotalTime) ? res.TotalTime : total_time;
@@ -170,7 +216,7 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 			else { ++incc; }
 		}
 #ifdef DO_REFERENCE_TEST
-		ReturnedResults resref = single_reference_test(n, iter, random_initialization);
+		ReturnedResults resref = single_reference_test(n, iter, *A);
 		time_LU_ref = (time_LU_ref > resref.LUTime) ? resref.LUTime : time_LU_ref;
 #endif
 	}

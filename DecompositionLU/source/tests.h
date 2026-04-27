@@ -43,12 +43,18 @@ private:
 
 	// optimization and execution time test, n - size of square matrix, how_many_times - number of runs
 	static void test_time(size_t _n, size_t how_many_times = 1);
-	// internal function for test_time
-	static ReturnedResults single_test_time(size_t n, size_t iter);
+	
 
 #ifdef DO_REFERENCE_TEST
-	// measures execution time using Eigen::PartialPivLU<Eigen::MatrixXd>
-	static ReturnedResults single_reference_test(size_t n, size_t iter, const SquareMatrix& sqmtr);
+	// internal function for test_time, matpoint - pointer to inited matrix, 
+	// which can be used in single_reference_test function.
+	static ReturnedResults single_test_time(size_t n, size_t iter, SquareMatrix*& A);
+	// internal function for test_time, measures execution time using 
+	// Eigen::PartialPivLU<Eigen::MatrixXd>
+	static ReturnedResults single_reference_test(size_t n, size_t iter, const SquareMatrix& A);
+#else
+	// internal function for test_time
+	static ReturnedResults single_test_time(size_t n, size_t iter);
 #endif
 
 	// output functions
