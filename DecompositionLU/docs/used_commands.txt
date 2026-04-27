@@ -16,14 +16,26 @@ srun numactl -C 0-19 ./LU_Benchmark --size 10000 --dac
 Вся сборка сейчас происходит тулчейнами, все добавил, что было:
 
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchains/risk-V_gcc.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchains/risk-V_clang.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchains/x86_icpx2023.cmake
 
+А также определения:
+	-DDO_REFERENCE_TEST=1		для сравнения с версией eigen-<вписать сюда версию eigen>
+	-DPRINT_BLOCK_TIMES=1		для замеров времени работы каждого этапа разложения по отдельности
+	-DBLOCK_SIZE=<какое-то число>	чтобы задать размер блока для блочного алгоритма (в тулчейнах для risk-V уже вшит размер 32)
 
 На риске запускался как в инструкции, пусть тут тоже лежит:
 
 Модули следующие:
 
+Обязательно нужен:
 module load gcc-9.5.0
+
+Для risk-V:
 module load gcc-riscv64-15.1.0
+Для x86:
+module load compiler/2023.0.0
+
 
 Строка:
 
