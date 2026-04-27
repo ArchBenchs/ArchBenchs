@@ -19,6 +19,6 @@ endif()
 
 if(DEFINED DO_REFERENCE_TEST)
 	target_compile_definitions(${project_name} PRIVATE DO_REFERENCE_TEST=${DO_REFERENCE_TEST})
-	target_include_directories(${project_name} PRIVATE "${CMAKE_CURRENT_LIST_DIR}/eigen-5.0.0")
+	target_include_directories(${project_name} PRIVATE "${CMAKE_CURRENT_LIST_DIR}/eigen-3.4.0")
 endif()
 
