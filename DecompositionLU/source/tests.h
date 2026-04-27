@@ -46,6 +46,11 @@ private:
 	// внутренн€€ функци€ test_time
 	static ReturnedResults single_test_time(size_t n, size_t iter);
 
+#ifdef DO_REFERENCE_TEST
+	// замер€ет врем€ работы при использовании Eigen::PartialPivLU<Eigen::MatrixXd>
+	static ReturnedResults single_reference_test(size_t n, size_t iter, bool idd);
+#endif
+
 	// функции дл€ вывода
 
 	static void print_test_start(std::string s = "");
