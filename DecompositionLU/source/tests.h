@@ -48,7 +48,7 @@ private:
 
 #ifdef DO_REFERENCE_TEST
 	// measures execution time using Eigen::PartialPivLU<Eigen::MatrixXd>
-	static ReturnedResults single_reference_test(size_t n, size_t iter, bool idd);
+	static ReturnedResults single_reference_test(size_t n, size_t iter, const SquareMatrix& sqmtr);
 #endif
 
 	// output functions

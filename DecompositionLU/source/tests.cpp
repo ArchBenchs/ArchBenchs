@@ -122,38 +122,18 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 #include <Eigen/Dense>      
 #include <Eigen/LU>         
 
-ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, bool ri) {
+ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const SquareMatrix& sqmtr) {
 	ReturnedResults results;
-	TP start_init = NOW;
 	Eigen::MatrixXd A(n, n);
-	if (ri) {
-		random_device rd; mt19937 gen(rd());
-		uniform_real_distribution<Type> common_generator(1e-6, 1e6);
-		uniform_real_distribution<Type> positive_generator(0, 5e5);
-		for (size_t i = 0; i < n; i++) {
-			Type sum = 0;
-			for (size_t j = 0; j < n; j++) {
-				Type val = common_generator(gen);
-				A(i, j) = val; sum += fabs(val);
-			}
-			A(i, i) = sum + positive_generator(gen);
+	for (size_t i = 0; i < n; i++) {
+		for (size_t j = 0; j < n; j++) {
+			A(i, j) = sqmtr(i, j);
 		}
 	}
-	else {
-		Type val = static_cast<Type>(n * n);
-		for (size_t i = 0; i < n; ++i) {
-			for (size_t j = 0; j < i; ++j) { A(i, j) = 1; }
-			A(i, i) = val;
-			for (size_t j = i + 1; j < n; ++j) { A(i, j) = 1; }
-		}
-	}
-	results.InitTime = duration_cast<milliseconds>(NOW - start_init);
 
 	TP start_LU = NOW;
 	Eigen::PartialPivLU<Eigen::MatrixXd> lu(A);
 	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
-
-	results.TotalTime = duration_cast<milliseconds>(NOW - start_init);
 
 	if (do_accuracy_check) {
 		results.is_correct = true;
@@ -191,9 +171,7 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 		}
 #ifdef DO_REFERENCE_TEST
 		ReturnedResults resref = single_reference_test(n, iter, random_initialization);
-		time_init = (time_init > resref.InitTime) ? resref.InitTime : time_init;
 		time_LU_ref = (time_LU_ref > resref.LUTime) ? resref.LUTime : time_LU_ref;
-		total_time = (total_time > resref.TotalTime) ? resref.TotalTime : total_time;
 #endif
 	}
 	print("\nMinimum time for init random matrix: ");
