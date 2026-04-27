@@ -10,7 +10,7 @@ file(GLOB srcs "source/*.cpp")
 add_executable(${project_name} ${srcs} ${hdrs})
 
 if(DEFINED PRINT_BLOCK_TIMES)
-	target_compile_definitions(${project_name} PRIVATE PRINT_BLOCK_TIMES)
+	target_compile_definitions(${project_name} PRIVATE PRINT_BLOCK_TIMES=${PRINT_BLOCK_TIMES})
 endif()
 
 if(DEFINED BLOCK_SIZE)
@@ -18,7 +18,7 @@ if(DEFINED BLOCK_SIZE)
 endif()
 
 if(DEFINED DO_REFERENCE_TEST)
-	target_compile_definitions(${project_name} PRIVATE DO_REFERENCE_TEST)
+	target_compile_definitions(${project_name} PRIVATE DO_REFERENCE_TEST=${DO_REFERENCE_TEST})
 	target_include_directories(${project_name} PRIVATE "${CMAKE_CURRENT_LIST_DIR}/eigen-5.0.0")
 endif()
 
