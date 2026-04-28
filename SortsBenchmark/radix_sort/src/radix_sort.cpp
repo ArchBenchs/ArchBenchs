@@ -4,34 +4,27 @@
 using std::size_t;
 
 
-// получение значения бита по позиции pos справа
 inline uint64_t get_bit(uint64_t x, int pos) {
     return (x >> pos) & 1ULL;
 }
 
 
-// инвертирование отрицательных чисел, инвертирование старшего бита у положительных
 inline uint64_t transform(uint64_t bits) {
     if (bits & (1ULL << 63))
         return ~bits;
-
     else
         return bits ^ (1ULL << 63);
 }
 
-// у "отрицательных" (изначально положительные) чисел инвертируем старший бит, 
-// "положительные" (изначально отрицательные) числа инвертируем
+
 inline uint64_t untransform(uint64_t bits) {
     if (bits & (1ULL << 63))
         return bits ^ (1ULL << 63);
-
     else
         return ~bits;
 }
 
 
-// сортировка подсчётом
-// идея: делать сортировку не по битам, а по байтам
 inline void counting_sort(uint64_t* arr_bits, uint64_t* temp_bits, size_t size, int bit) {
     size_t count[2] = {0, 0};
     
@@ -48,6 +41,31 @@ inline void counting_sort(uint64_t* arr_bits, uint64_t* temp_bits, size_t size, 
 }
 
 
+void msd_radix_sort(uint64_t* arr_bits, uint64_t* temp_bits, size_t size, int bit) {
+    if (size <= 1 || bit < 0)
+        return;
+    
+    counting_sort(arr_bits, temp_bits, size, bit);
+    
+    for (size_t i = 0; i < size; i++)
+        arr_bits[i] = temp_bits[i];
+    
+
+    size_t mid = 0;
+
+    while (mid < size && get_bit(arr_bits[mid], bit) == 0)
+        mid++;
+    
+    #pragma omp task
+    msd_radix_sort(arr_bits, temp_bits, mid, bit - 1);
+    
+    #pragma omp task
+    msd_radix_sort(arr_bits + mid, temp_bits + mid, size - mid, bit - 1);
+
+    #pragma omp taskwait
+}
+
+
 void radix_sort(double* arr, size_t size) {
     if (size <= 1) 
         return;
@@ -55,22 +73,18 @@ void radix_sort(double* arr, size_t size) {
     uint64_t* arr_bits = reinterpret_cast<uint64_t*>(arr);
     double* temp = new double[size];
     uint64_t* temp_bits = reinterpret_cast<uint64_t*>(temp);
-
     
-    // преобразуем исходный массив
     for (size_t i = 0; i < size; i++)
         arr_bits[i] = transform(arr_bits[i]);
 
-    // работаем с преобразованными double с использованием дополнительной памяти
-    // идея: делить массив на n частей и сортировать их параллельно
-    for (int bit = 0; bit < 64; bit++) {
-        counting_sort(arr_bits, temp_bits, size, bit);
 
-        for (size_t i = 0; i < size; i++)
-            arr_bits[i] = temp_bits[i];
+    #pragma omp parallel
+    {
+        #pragma omp single
+        msd_radix_sort(arr_bits, temp_bits, size, 63);
     }
     
-    // делаем обратное преобразование
+
     for (size_t i = 0; i < size; i++)
         arr_bits[i] = untransform(arr_bits[i]);
             

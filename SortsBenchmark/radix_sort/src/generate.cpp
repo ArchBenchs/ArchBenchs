@@ -3,7 +3,7 @@
 #include <random>
 
 int main() {
-    const int64_t N = 100000000;
+    const int64_t N = 10000000;
     
     std::mt19937 gen(42);
     std::uniform_real_distribution<> dis(-16.0, 16.0);

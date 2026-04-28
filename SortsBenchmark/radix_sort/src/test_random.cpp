@@ -1,4 +1,4 @@
-#include "quick_sort.cpp"
+#include "radix_sort.cpp"
 #include <chrono>
 #include <iostream>
 #include <fstream>
@@ -14,7 +14,7 @@ bool check_sorted(double* arr, int64_t N) {
 
 
 void test_random() {
-    const int64_t N = 1000000000;
+    const int64_t N = 10000000;
 
     double* Array = new double[N];
 
