@@ -76,7 +76,7 @@ bool TestSystem::test4() {
 bool TestSystem::do_accuracy_check = true;
 bool TestSystem::random_initialization = false;
 
-#ifdef DO_REFERENCE_TEST
+#if defined REFERENCE_TEST && (REFERENCE_TEST == eigen || REFERENCE_TEST == mkl)
 ReturnedResults TestSystem::single_test_time(size_t n, size_t iter, SquareMatrix*& A) {
 	ReturnedResults results;
 
@@ -117,10 +117,10 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter, SquareMatrix
 	else { results.is_correct = false; }
 	return results;
 }
+#if REFERENCE_TEST == eigen
 
 #include <Eigen/Dense>      
-#include <Eigen/LU>         
-
+#include <Eigen/LU>    
 ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const SquareMatrix& sqmtr) {
 	ReturnedResults results;
 	Eigen::MatrixXd A(n, n);
@@ -147,6 +147,35 @@ ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const S
 	else { results.is_correct = false; }
 	return results;
 }
+
+#else
+
+#include <mkl_lapacke.h>
+ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const SquareMatrix& sqmtr) {
+	ReturnedResults results;
+	SquareMatrix A(sqmtr);
+	int64_t* ipiv_ptr = new int64_t[n];
+
+	TP start_LU = NOW;
+	int info = LAPACKE_dgetrf(LAPACK_ROW_MAJOR, n, n, A.get_array(), n, ipiv_ptr);
+	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
+
+	if (do_accuracy_check) {
+		results.is_correct = true;
+		bool consol = (out == &cout);
+		if (consol) { *out << "\033[33m"; }
+		print("   Reference test "); print(iter + 1);
+		print(". LU Time: ");
+		print(results.LUTime.count());
+		if (consol) { *out << "\033[0m"; }
+		p_endl();
+	}
+	else { results.is_correct = false; }
+	return results;
+}
+
+#endif
+
 #else
 ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 	ReturnedResults results;
@@ -194,7 +223,7 @@ ReturnedResults TestSystem::single_test_time(size_t n, size_t iter) {
 void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print_test_start("time");
 	chrono::milliseconds time_init{ 1000000000 }, total_time{ 1000000000 }, time_LU{ 1000000000 };
-#ifdef DO_REFERENCE_TEST
+#if defined REFERENCE_TEST && (REFERENCE_TEST == eigen || REFERENCE_TEST == mkl)
 	chrono::milliseconds time_LU_ref{ 1000000000 };
 #endif
 	const size_t n = _n;
@@ -202,7 +231,7 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 	print("Testing with n = "); print(_n); print(", ");
 	print(how_many_times); print(" times:"); p_endl();
 	for (size_t iter = 0; iter < how_many_times; ++iter) {
-#ifdef DO_REFERENCE_TEST
+#if defined REFERENCE_TEST && (REFERENCE_TEST == eigen || REFERENCE_TEST == mkl)
 		SquareMatrix* A = new SquareMatrix(n);
 		ReturnedResults res = single_test_time(n, iter, A);
 #else
@@ -215,7 +244,7 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 			if (res.is_correct) { ++cc; }
 			else { ++incc; }
 		}
-#ifdef DO_REFERENCE_TEST
+#if defined REFERENCE_TEST && (REFERENCE_TEST == eigen || REFERENCE_TEST == mkl)
 		ReturnedResults resref = single_reference_test(n, iter, *A);
 		time_LU_ref = (time_LU_ref > resref.LUTime) ? resref.LUTime : time_LU_ref;
 #endif
@@ -225,7 +254,7 @@ void TestSystem::test_time(size_t _n, size_t how_many_times) {
 
 	print(" ms\nMinimum time for LU decomposition: ");
 	print(time_LU.count());
-#ifdef DO_REFERENCE_TEST
+#if defined REFERENCE_TEST && (REFERENCE_TEST == eigen || REFERENCE_TEST == mkl)
 	print(" ms\nMinimum time for reference LU decomposition: ");
 	print(time_LU_ref.count());
 #endif

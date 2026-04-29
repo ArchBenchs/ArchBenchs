@@ -1,5 +1,8 @@
 #pragma once
 
+#define mkl 1
+#define eigen 2
+
 #include "square_matrix.h"
 
 #include <vector>
@@ -45,13 +48,17 @@ private:
 	static void test_time(size_t _n, size_t how_many_times = 1);
 	
 
-#ifdef DO_REFERENCE_TEST
+#if defined REFERENCE_TEST && (REFERENCE_TEST==eigen || REFERENCE_TEST==mkl)
 	// internal function for test_time, matpoint - pointer to inited matrix, 
 	// which can be used in single_reference_test function.
 	static ReturnedResults single_test_time(size_t n, size_t iter, SquareMatrix*& A);
-	// internal function for test_time, measures execution time using 
-	// Eigen::PartialPivLU<Eigen::MatrixXd>
+#if REFERENCE_TEST == eigen
+	// internal function for test_time, measures execution time using Eigen::PartialPivLU<Eigen::MatrixXd>
 	static ReturnedResults single_reference_test(size_t n, size_t iter, const SquareMatrix& A);
+#elif REFERENCE_TEST == mkl
+	// internal function for test_time, measures execution time using LAPACKE_dgetrf from mkl
+	static ReturnedResults single_reference_test(size_t n, size_t iter, const SquareMatrix& A);
+#endif
 #else
 	// internal function for test_time
 	static ReturnedResults single_test_time(size_t n, size_t iter);

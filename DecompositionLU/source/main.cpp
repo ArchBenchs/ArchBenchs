@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	bool hsz = false, hcnt = false;
 	for (int i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--help") == 0) {
-			cout << "Options:\n";
+			cout << "CMD Options:\n";
 			cout << "  --help					Show help.\n";
 			cout << "  --size [VALUE]				Set size of matrix used in time tests equal to VALUE.\n";
 			cout << "  --count [VALUE]				Program do the time test VALUE times (new matrix every time).\n";
@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
 			cout << "  --workability_tests (--wt)			Enables workability tests.\n";
 			cout << "  --disable_accuracy_check (--dac)		Disables result checking in time-measuring tests.\n";
 			cout << "  --random_initialization (--ri)		Enables random matrix initialization (in range [1e-6; 1e6]).\n";
+			//cout << "Compilation options:\n";
 			return 0;
 		}
 		else if (strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
