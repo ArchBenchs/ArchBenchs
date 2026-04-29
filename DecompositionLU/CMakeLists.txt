@@ -26,7 +26,6 @@ if(DEFINED REFERENCE_TEST)
         message(STATUS "Using MKL as reference")
         find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
         target_link_libraries(${project_name} PRIVATE MKL::MKL)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mkl=parallel")
     endif()
 endif()
 
