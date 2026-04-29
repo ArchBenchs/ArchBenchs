@@ -154,10 +154,10 @@ ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const S
 ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const SquareMatrix& sqmtr) {
 	ReturnedResults results;
 	SquareMatrix A(sqmtr);
-	int64_t* ipiv_ptr = new int64_t[n];
+	lapack_int* ipiv_ptr = new int64_t[n];
 
 	TP start_LU = NOW;
-	int info = LAPACKE_dgetrf(LAPACK_ROW_MAJOR, n, n, A.get_array(), n, ipiv_ptr);
+	lapack_int info = LAPACKE_dgetrf(LAPACK_ROW_MAJOR, n, n, A.get_array(), n, ipiv_ptr);
 	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
 	if (do_accuracy_check) {
