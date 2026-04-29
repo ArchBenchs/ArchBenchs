@@ -22,7 +22,14 @@ int main(int argc, char* argv[])
 			cout << "  --workability_tests (--wt)			Enables workability tests.\n";
 			cout << "  --disable_accuracy_check (--dac)		Disables result checking in time-measuring tests.\n";
 			cout << "  --random_initialization (--ri)		Enables random matrix initialization (in range [1e-6; 1e6]).\n";
-			//cout << "Compilation options:\n";
+			cout << "Compilation options:\n";
+			cout << "  -DBLOCK_SIZE=[VALUE]				Set size of block used in block LU algorithm (default 64).\n";
+			cout << "  -DPRINT_BLOCK_TIMES=1				Enables measuring part's times of block LU algorithm:\n"
+				<< "							L11xU11: A11 -> L11 and U11;\n"
+				<< "							L21: A21->L21;\n"
+				<< "							U12: A12->U12;\n"
+				<< "							L22xU22: A22->L22* U22.\n";
+			cout << "  -REFERENCE_TEST=[ eigen | mkl ]		Set library to compare results with. Works with exactly same matrixes.\n";
 			return 0;
 		}
 		else if (strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
