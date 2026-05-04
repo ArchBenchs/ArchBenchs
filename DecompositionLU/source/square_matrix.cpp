@@ -234,7 +234,7 @@ bool SquareMatrix::operator!=(const SquareMatrix& m) {
 
 // ----------------------------------------< norm calculation >----------------------------------------------------
 
-Type SquareMatrix::get_infinite_norm() const {
+double SquareMatrix::get_infinite_norm() const {
 	Type curr_max = numeric_limits<Type>::lowest();
 #pragma omp parallel for reduction(max:curr_max)
 	for (int i = 0; i < size; ++i) {
@@ -254,7 +254,7 @@ double SquareMatrix::get_frobenius_norm() const {
 	return sqrt(sum);
 }
 
-Type SquareMatrix::get_one_norm() const {
+double SquareMatrix::get_one_norm() const {
 	Type curr_max = numeric_limits<Type>::lowest();
 #pragma omp parallel reduction(max:curr_max)
 	for (int i = 0; i < size; ++i) {

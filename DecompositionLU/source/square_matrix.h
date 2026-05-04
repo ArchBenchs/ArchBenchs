@@ -28,7 +28,7 @@ public:
 	static constexpr Type mashine_eps = numeric_limits<Type>::epsilon();
 
 	//  constructors & destructor 
-
+	
 	// if idd == true, inits diagonally dominant matrix, else - fills with 0
 	SquareMatrix(size_t s, bool init_diag_dominant = 0);
 	// fills matrix with in_arr values
@@ -65,20 +65,17 @@ public:
 
 	//  norm calculation 
 
-	Type get_infinite_norm() const;
-	Type get_frobenius_norm() const;
-	Type get_one_norm() const;
+	double get_infinite_norm() const;
+	double get_frobenius_norm() const;
+	double get_one_norm() const;
 
-	//  getters & setters 
+	//  getters
 
 	inline Type*& get_array() { return array; }
-	inline void set_array(Type*&& arr) { array = arr; }
-
 	inline const size_t get_size() const { return size; }
 
 	// I/O Stream 
 
 	friend istream& operator>>(istream& istr, SquareMatrix& m);
 	friend ostream& operator<<(ostream& ostr, const SquareMatrix& m) noexcept;
-
 };

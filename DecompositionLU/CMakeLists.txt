@@ -19,6 +19,12 @@ if(DEFINED BLOCK_SIZE)
     )
 endif()
 
+if(DEFINED TYPE)
+target_compile_definitions(${project_name} PRIVATE 
+        working_type=${TYPE}
+    )
+endif()
+
 if(DEFINED REFERENCE_TEST)
     target_compile_definitions(${project_name} PRIVATE 
         REFERENCE_TEST=${REFERENCE_TEST}

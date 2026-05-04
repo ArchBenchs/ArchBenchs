@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 				<< "							U12: A12->U12;\n"
 				<< "							L22xU22: A22->L22* U22.\n";
 			cout << "  -REFERENCE_TEST=[ eigen | mkl ]		Set library to compare results with. Works with exactly same matrixes.\n";
+			cout << "  -DTYPE=[int, float, double, etc.]	Set type of values in matrixes.\n";
 			return 0;
 		}
 		else if (strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
