@@ -45,13 +45,13 @@ Image convolutionApply(const Kernel& kernel, Image& image, std::chrono::duration
 
     auto start = std::chrono::steady_clock::now();
 
-    // Проход по каналам
-    for (int channel = 0; channel < 3; ++channel)
+    // Проход по пикселям изображения (с учетом границ размера ядра)
+    for (int result_ycord = 0; result_ycord < result_height; ++result_ycord)
     {
-        // Проход по пикселям изображения (с учетом границ размера ядра)
-        for (int result_ycord = 0; result_ycord < result_height; ++result_ycord)
+        for (int result_xcord = 0; result_xcord < result_width; ++result_xcord)
         {
-            for (int result_xcord = 0; result_xcord < result_width; ++result_xcord)
+            // Проход по каналам
+            for (int channel = 0; channel < 3; ++channel)
             {
                 float convolution_result = 0.0f;
                 // Операция свертки
@@ -63,8 +63,8 @@ Image convolutionApply(const Kernel& kernel, Image& image, std::chrono::duration
                         convolution_result += temp_result;
                     }
                 }
-
-                result.imSet(result_xcord, result_ycord, channel, convolution_result);
+                
+            result.imSet(result_xcord, result_ycord, channel, convolution_result);
             }
         }
     }

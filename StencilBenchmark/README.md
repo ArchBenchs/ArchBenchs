@@ -2,10 +2,10 @@
 1. Клонируйте репозиторий
 2. Скачайте набор изображений с Google Disk по ссылке: https://drive.google.com/drive/folders/1he_OPHm_fen3Hkt-zUyWBuNzXwkDBozn?usp=sharing
 3. Скачайте любое изображение вида 100k.bmp и переместите его в папку `/resources/input`
-4. В скрипте `increase_image_for_graphics.bash` укажите интересующую вас величину `max_pixel_count` (>= 100 000).
+4. В скрипте `iifgs_release.bash` укажите интересующую вас величину `max_pixel_count` (>= 100 000).
 6. Откройте консоль Git Bash и в ней перейдите в папку `StencilBenchmark`
-7. Запустите скрипт `build_to_debug.bash`
-8. Запустите скрипт `increase_image_for_graphics.bash`
+7. Запустите скрипт `build_release.bash`
+8. Запустите скрипт `iifgs_release.bash`
 9. После завершения работы программы посмотрите результат ее работы в папке resources/output. Там будет итоговое изображение (уже размноженное) и файл с логами по пикселям и времени. Да, не забудьте, что у вас есть ширина, высота и 3 канала (B, G, R).
 
 
