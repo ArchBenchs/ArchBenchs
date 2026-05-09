@@ -1,0 +1,12 @@
+# Build folder
+/out
+/.vs
+/build
+
+# Resource files
+*.jpg
+*.png
+*.bmp
+
+# Log files
+resources/output/timelog.txt
