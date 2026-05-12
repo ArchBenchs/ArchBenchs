@@ -256,7 +256,7 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 	#ifdef PRINT_BLOCK_TIMES
 		TP start_L22U22 = NOW;
 	#endif
-	#pragma omp parallel for // measure this block specifically
+	#pragma omp parallel for // L22 * U22 = A22 - L21 * U12
 		for (int i0 = block_size; i0 < curr_size; i0 += block_size) {
 			for (int j0 = block_size; j0 < curr_size; j0 += block_size) {
 				const int i1 = std::min(i0 + block_size, curr_size);
@@ -293,11 +293,9 @@ void DecomposerLU::block_get_LU(Type* matrix_array_p, size_t curr_sz, size_t sta
 	}
 }
 
-// collapse, when the outer loop is small and you want to parallelize it by combining with the second one
-
-void DecomposerLU::get_LU(SquareMatrix& matrix_pointer) {
-	Type*& m = matrix_pointer.get_array();
-	const size_t size = matrix_pointer.get_size();
+void DecomposerLU::get_LU(SquareMatrix& matrix) {
+	Type*& m = matrix.get_array();
+	const size_t size = matrix.get_size();
 	size_t k_iter_max = size - 1;
 	for (size_t k = 0; k < k_iter_max; k++) {
 		Type* A_xk = m + k;

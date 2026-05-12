@@ -52,7 +52,7 @@ public:
 	inline Type& operator()(size_t i, size_t j) { return array[i * size + j]; }
 	inline const Type& operator()(size_t i, size_t j) const { return array[i * size + j]; }
 
-	//  arithmetic 
+	//  arithmetic
 
 	SquareMatrix operator+(const SquareMatrix& m);
 	SquareMatrix operator-(const SquareMatrix& m);

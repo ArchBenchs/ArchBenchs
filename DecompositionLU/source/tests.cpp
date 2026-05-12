@@ -135,13 +135,27 @@ ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const S
 	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
 	if (do_accuracy_check) {
-		results.is_correct = true;
+		Eigen::MatrixXd L = Eigen::MatrixXd::Identity(n, n);
+		L.triangularView<Eigen::StrictlyLower>() = lu.matrixLU();
+		Eigen::MatrixXd U = lu.matrixLU().triangularView<Eigen::Upper>();
+		Eigen::MatrixXd P = lu.permutationP();
+		Eigen::MatrixXd A_reconstructed = P.inverse() * L * U;
+
+		double error = (A - A_reconstructed).norm();
+
+		results.is_correct = error < SquareMatrix::mashine_eps;
+
 		bool consol = (out == &cout);
 		if (consol) { *out << "\033[33m"; }
 		print("   Reference test "); print(iter + 1);
 		print(". LU Time: ");
 		print(results.LUTime.count());
-		if (consol) { *out << "\033[0m"; }
+
+		print(". Test result: ");
+		if (results.is_correct) { if (consol) *out << "\033[32m"; print("true"); }
+		else { if (consol) *out << "\033[31m"; print("false"); }
+
+		if (consol) *out << "\033[0m";
 		p_endl();
 	}
 	else { results.is_correct = false; }
@@ -161,13 +175,25 @@ ReturnedResults TestSystem::single_reference_test(size_t n, size_t iter, const S
 	results.LUTime = duration_cast<milliseconds>(NOW - start_LU);
 
 	if (do_accuracy_check) {
-		results.is_correct = true;
+		SquareMatrix L(n), U(n);
+		DecomposerLU::decompose_LU(A, L, U);
+		SquareMatrix Res = L * U;
+		double infinite_cond_A = (Res - sqmtr).get_infinite_norm() /
+			(sqmtr.get_infinite_norm() * SquareMatrix::mashine_eps);
+		results.is_correct = (Res == sqmtr);
+
 		bool consol = (out == &cout);
 		if (consol) { *out << "\033[33m"; }
 		print("   Reference test "); print(iter + 1);
 		print(". LU Time: ");
 		print(results.LUTime.count());
-		if (consol) { *out << "\033[0m"; }
+
+		print(". Test result: ");
+		if (results.is_correct) { if (consol) *out << "\033[32m"; print("true"); }
+		else { if (consol) *out << "\033[31m"; print("false"); }
+
+		if (consol) *out << "\033[0m";
+
 		p_endl();
 	}
 	else { results.is_correct = false; }

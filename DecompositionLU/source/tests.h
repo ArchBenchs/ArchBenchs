@@ -1,14 +1,15 @@
 #pragma once
 
-#define mkl 1
-#define eigen 2
-
 #include "square_matrix.h"
 
 #include <vector>
 #include <string>
 #include <chrono>
 #include <fstream>
+
+
+#define mkl 1
+#define eigen 2
 
 using namespace std::chrono;
 
@@ -46,7 +47,6 @@ private:
 
 	// optimization and execution time test, n - size of square matrix, how_many_times - number of runs
 	static void test_time(size_t _n, size_t how_many_times = 1);
-	
 
 #if defined REFERENCE_TEST && (REFERENCE_TEST==eigen || REFERENCE_TEST==mkl)
 	// internal function for test_time, matpoint - pointer to inited matrix, 
