@@ -3,10 +3,6 @@
 #include <typeinfo> 
 using namespace std;
 
-static double bytes_to_Gb(double val) {
-	return val / 268435456.0;
-}
-
 int main(int argc, char* argv[])
 {
 	string fname; 
@@ -29,7 +25,7 @@ int main(int argc, char* argv[])
 				<< "							L21: A21->L21;\n"
 				<< "							U12: A12->U12;\n"
 				<< "							L22xU22: A22->L22* U22.\n";
-			cout << "  -REFERENCE_TEST=[ eigen | mkl ]		Set library to compare results with. Works with exactly same matrixes.\n";
+			cout << "  -DREFERENCE_TEST=[ eigen | mkl ]		Set library to compare results with. Works with exactly same matrixes.\n";
 			cout << "  -DTYPE=[int, float, double, etc.]	Set type of values in matrixes.\n";
 			return 0;
 		}
@@ -61,9 +57,6 @@ int main(int argc, char* argv[])
 	cout << "Use \"--help\" to see additional options.\n\n";
 	size_t arg1 = (hsz) ? size : 1000;
 	size_t arg2 = (hcnt) ? count : 1;
-
-	cout << "Requires " << bytes_to_Gb((double)(arg1 * arg1 * sizeof(Type))) << "Gb of RAM" << endl;
-	cout << "Testing with values type: " << typeid(Type).name() << endl;
 
 	TestSystem::run_all_tests(arg1, arg2, fname);
 	return 0; 

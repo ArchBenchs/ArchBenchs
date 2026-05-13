@@ -328,6 +328,9 @@ void TestSystem::disable_accuracy_check() { do_accuracy_check = false; }
 
 void TestSystem::enable_random_initialization() { random_initialization = true; }
 
+static double bytes_to_Gb(double val) {
+	return val / 268435456.0;
+}
 void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 	if (filename != "") {
 		file_out.open(filename);
@@ -337,11 +340,25 @@ void TestSystem::run_all_tests(size_t n, size_t count, std::string filename) {
 		}
 		else { out = &file_out; }
 	}
-	print("\nTestSystem:\n");
+	print("TestSystem:\nTesting with values type: ");
+	print(typeid(Type).name());
+	print("\nRequires "); 
+	print(bytes_to_Gb((double)(n * n * sizeof(Type)))); 
+	print("Gb of RAM\n");
+	bool consol = (out == &cout);
+#if defined REFERENCE_TEST && (REFERENCE_TEST == eigen || REFERENCE_TEST == mkl)
+	if (consol) { *out << "\033[33m"; }
+	print("Reference test library: ");
+#if REFERENCE_TEST == eigen
+	print("Eigen 5.0.0");
+#else 
+	print("Intel MKL");
+#endif
+	if (consol) *out << "\033[0m";
+#endif
 	bool last_res;
 	for (auto TestPtr : workability_tests) {
 		last_res = (*TestPtr)();
-		bool consol = (out == &cout);
 		if (consol) {
 			if (last_res) *out << "\033[32m";
 			else *out << "\033[31m";
