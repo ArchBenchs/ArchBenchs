@@ -28,8 +28,28 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    MKL::MKL
-    OpenMP::OpenMP_CXX
-)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64" OR RISCV)
+    find_package(OpenMP REQUIRED)
+    
+    add_executable(${PROJECT_NAME} ${SOURCES})
+    
+    target_compile_options(${PROJECT_NAME} PRIVATE -march=rv64gcv -mabi=lp64d -O3 -ffast-math -fno-math-errno)
+    
+    target_link_libraries(${PROJECT_NAME} PRIVATE 
+        OpenMP::OpenMP_CXX
+    )
 
+else()
+    
+    find_package(MKL REQUIRED)
+    find_package(OpenMP REQUIRED)
+    
+    add_executable(${PROJECT_NAME} ${SOURCES})
+
+    target_compile_options(${PROJECT_NAME} PRIVATE -O3 -march=native -ffast-math -fno-math-errno)
+    
+    target_link_libraries(${PROJECT_NAME} PRIVATE 
+        MKL::MKL
+        OpenMP::OpenMP_CXX
+    )
+endif()
