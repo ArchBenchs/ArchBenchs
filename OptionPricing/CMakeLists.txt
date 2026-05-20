@@ -18,22 +18,16 @@ set(SOURCES
     external/toms462.cpp
 )
 
-find_package(MKL REQUIRED)
-find_package(OpenMP REQUIRED)
-
+#target_compile_definitions(${PROJECT_NAME} PRIVATE USE_MKL)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-#target_compile_definitions(${PROJECT_NAME} PRIVATE USE_MKL)
-
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenRAND/include)
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64" OR RISCV)
     find_package(OpenMP REQUIRED)
     
-    add_executable(${PROJECT_NAME} ${SOURCES})
-    
-    target_compile_options(${PROJECT_NAME} PRIVATE -march=rv64gcv -mabi=lp64d -O3 -ffast-math -fno-math-errno)
+    target_compile_options(${PROJECT_NAME} PRIVATE -march=rv64gcv_zvfh -mabi=lp64d -O3 -ffast-math -fno-math-errno)
     
     target_link_libraries(${PROJECT_NAME} PRIVATE 
         OpenMP::OpenMP_CXX
@@ -43,8 +37,6 @@ else()
     
     find_package(MKL REQUIRED)
     find_package(OpenMP REQUIRED)
-    
-    add_executable(${PROJECT_NAME} ${SOURCES})
 
     target_compile_options(${PROJECT_NAME} PRIVATE -O3 -march=native -ffast-math -fno-math-errno)
     
