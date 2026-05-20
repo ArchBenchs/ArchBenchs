@@ -1,0 +1,47 @@
+cmake_minimum_required(VERSION 3.10)
+project(OptionPricing)
+
+set(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD_REQUIRED True)
+
+include_directories(include)
+include_directories(external)
+
+
+set(SOURCES 
+    src/european_analytical.cpp
+    src/bermuda_RT.cpp 
+    src/bermuda_SM.cpp 
+    src/european_numerical.cpp 
+    src/option_pricing_parallel.cpp
+    src/european_numerical_risc.cpp
+    external/toms462.cpp
+)
+
+#target_compile_definitions(${PROJECT_NAME} PRIVATE USE_MKL)
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenRAND/include)
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64" OR RISCV)
+    find_package(OpenMP REQUIRED)
+    
+    target_compile_options(${PROJECT_NAME} PRIVATE -march=rv64gcv_zvfh -mabi=lp64d -O3 -ffast-math -fno-math-errno)
+    
+    target_link_libraries(${PROJECT_NAME} PRIVATE 
+        OpenMP::OpenMP_CXX
+    )
+
+else()
+    
+    find_package(MKL REQUIRED)
+    find_package(OpenMP REQUIRED)
+
+    target_compile_options(${PROJECT_NAME} PRIVATE -O3 -march=native -ffast-math -fno-math-errno)
+    
+    target_link_libraries(${PROJECT_NAME} PRIVATE 
+        MKL::MKL
+        OpenMP::OpenMP_CXX
+    )
+endif()
